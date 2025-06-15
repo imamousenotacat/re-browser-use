@@ -2348,10 +2348,14 @@ class BrowserSession(BaseModel):
 		try:
 			await self.remove_highlights()
 			dom_service = DomService(page, logger=self.logger)
-			content = await dom_service.get_clickable_elements(
+			# => TODO:pvm14 EXTRACTING THE DOMState OBJECT FROM THE PAGE USING buildDomTree.js
+			#    !!! POTENTIALLY BREAKING CHANGE: USING MY NEW FUNCTION INSTEAD OF THE OLD ONE get_clickable_elements ...
+			#content = await dom_service.get_clickable_elements(
+			content = await dom_service.get_multitarget_clickable_elements(
 				focus_element=focus_element,
 				viewport_expansion=self.browser_profile.viewport_expansion,
 				highlight_elements=self.browser_profile.highlight_elements,
+				remove_highlights=self.remove_highlights,
 			)
 
 			tabs_info = await self.get_tabs_info()
