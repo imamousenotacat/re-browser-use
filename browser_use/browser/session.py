@@ -284,9 +284,9 @@ class BrowserSession(BaseModel):
 		# if we're already initialized and the connection is still valid, return the existing session state and start from scratch
 
 		# Use timeout to prevent indefinite waiting on lock acquisition
-
-		async with asyncio.timeout(60):  # 60 second overall timeout for entire launching process to avoid deadlocks
-			async with self._start_lock:  # prevent parallel calls to start() / stop() / save_storage_state() from clashing
+		# PVM14: This was creating trouble when debugging ...
+		async with asyncio.timeout(6000):  # 60 overall second timeout for entire launching process
+			async with self._start_lock:
 				if self.initialized:
 					if self.is_connected():
 						return self
@@ -324,9 +324,8 @@ class BrowserSession(BaseModel):
 
 					# resize the existing pages and set up foreground tab detection
 					await self._setup_viewports()
-					await self._setup_current_page_change_listeners()
-					await self._start_context_tracing()
-				except BaseException:
+					# await self._setup_current_page_change_listeners() # PVM14 => In the considered use case, the browser is left to its own devices. so this is irrelevant
+				except BaseException:                                 #          Probably it will be conditionally removed with a flag
 					self.initialized = False
 					raise
 
@@ -365,7 +364,7 @@ class BrowserSession(BaseModel):
 		# trying to launch/kill browsers at the same time is an easy way to trash an entire user_data_dir
 		# it's worth the 1s or 2s of delay in the worst case to avoid race conditions, user_data_dir can be a few GBs
 		# Use timeout to prevent indefinite waiting on lock acquisition
-		async with asyncio.timeout(30):  # 30 second timeout for stop operations
+		async with asyncio.timeout(6000):  # 30 second timeout for stop operations
 			async with self._start_lock:
 				# save cookies to disk if cookies_file or storage_state is configured
 				# but only if the browser context is still connected
@@ -397,7 +396,7 @@ class BrowserSession(BaseModel):
 								final_trace_path = traces_path / trace_filename
 
 							self.logger.info(f'🎥 Saving browser context trace to {final_trace_path}...')
-							async with asyncio.timeout(30):
+							async with asyncio.timeout(6000):
 								await self.browser_context.tracing.stop(path=str(final_trace_path))
 						except Exception as e:
 							# TargetClosedError is expected when browser has already been closed - don't log as error
@@ -419,7 +418,7 @@ class BrowserSession(BaseModel):
 					try:
 						# Add timeout to prevent hanging on close if context is already closed
 						try:
-							async with asyncio.timeout(30):  # 30 second timeout for close operation
+							async with asyncio.timeout(6000):  # 30 second timeout for close operation
 								# IMPORTANT: Close context first to ensure HAR/video files are saved
 								if self.browser_context:
 									await self.browser_context.close()
@@ -446,7 +445,7 @@ class BrowserSession(BaseModel):
 						self.logger.info(f' ↳ Killing browser_pid={self.browser_pid} {_log_pretty_path(executable_path)}')
 						# Add timeout for process termination
 						try:
-							async with asyncio.timeout(5):  # 5 second timeout
+							async with asyncio.timeout(6000):  # 5 second timeout
 								proc.terminate()
 								self._kill_child_processes()
 								await asyncio.to_thread(proc.wait, timeout=4)
@@ -781,12 +780,12 @@ class BrowserSession(BaseModel):
 				# self.logger.debug('🌎 Launching local browser in incognito mode')
 				# if no user_data_dir is provided, launch an incognito context with no persistent user_data_dir
 				try:
-					async with asyncio.timeout(10):  # Reduced timeout from 30s to 10s
+					async with asyncio.timeout(6000):  # Reduced timeout from 30s to 10s
 						self.browser = self.browser or await self.playwright.chromium.launch(
 							**self.browser_profile.kwargs_for_launch().model_dump()
 						)
 					# self.logger.debug('🌎 Launching new incognito context in browser')
-					async with asyncio.timeout(10):  # Reduced timeout from 30s to 10s
+					async with asyncio.timeout(6000):  # Reduced timeout from 30s to 10s
 						self.browser_context = await self.browser.new_context(
 							**self.browser_profile.kwargs_for_new_context().model_dump(mode='json')
 						)
@@ -798,11 +797,11 @@ class BrowserSession(BaseModel):
 					# Force recreation of the playwright object
 					self.playwright = await self._start_global_playwright_subprocess(is_stealth=self.browser_profile.stealth)
 					# Retry the operation with the new playwright instance
-					async with asyncio.timeout(10):
+					async with asyncio.timeout(6000):
 						self.browser = await self.playwright.chromium.launch(
 							**self.browser_profile.kwargs_for_launch().model_dump()
 						)
-					async with asyncio.timeout(10):
+					async with asyncio.timeout(6000):
 						self.browser_context = await self.browser.new_context(
 							**self.browser_profile.kwargs_for_new_context().model_dump()
 						)
@@ -822,11 +821,18 @@ class BrowserSession(BaseModel):
 
 				# if a user_data_dir is provided, launch a persistent context with that user_data_dir
 				try:
-					async with asyncio.timeout(10):  # Reduced timeout from 30s to 10s
+					async with asyncio.timeout(6000):  # Reduced timeout from 30s to 10s
 						try:
 							self.browser_context = await self.playwright.chromium.launch_persistent_context(
 								**self.browser_profile.kwargs_for_launch_persistent_context().model_dump(mode='json')
 							)
+							# PVM14: Cutting Gordian knots ... INSTEAD OF MODIFYING THE ORIGINAL CODE THE Playwright/Patchright OBJECTS
+							# WILL BE EXTERNALLY PROVIDED SEE test_boot_detection.py ...
+							# chromium = self.playwright.chromium
+							# browser = await chromium.launch(headless=False)
+							# print(f"browser = {browser} ...")
+							# self.browser_context = await browser.new_context()
+							# print(f"self.browser_context = {self.browser_context} ... ")
 						except Exception as e:
 							# Re-raise if not a timeout
 							if not isinstance(e, asyncio.TimeoutError):
@@ -839,7 +845,7 @@ class BrowserSession(BaseModel):
 					# Force recreation of the playwright object
 					self.playwright = await self._start_global_playwright_subprocess(is_stealth=self.browser_profile.stealth)
 					# Retry the operation with the new playwright instance
-					async with asyncio.timeout(10):
+					async with asyncio.timeout(6000):
 						self.browser_context = await self.playwright.chromium.launch_persistent_context(
 							**self.browser_profile.kwargs_for_launch_persistent_context().model_dump()
 						)
@@ -878,7 +884,7 @@ class BrowserSession(BaseModel):
 					raise
 
 		# Only restore browser from context if it's connected, otherwise keep it None to force new launch
-		browser_from_context = self.browser_context and self.browser_context.browser
+		browser_from_context = self.browser_context and self.browser_context.browser # PVM14 => self?.browser_context?.browser
 		if browser_from_context and browser_from_context.is_connected():
 			self.browser = browser_from_context
 		# ^ self.browser can unfortunately still be None at the end ^
@@ -919,14 +925,14 @@ class BrowserSession(BaseModel):
 			window.isPdfViewer = !!document?.body?.querySelector('body > embed[type="application/pdf"][width="100%"]')
 			if (!window.isPdfViewer) {
 
-				// Permissions
-				const originalQuery = window.navigator.permissions.query;
-				window.navigator.permissions.query = (parameters) => (
-					parameters.name === 'notifications' ?
-						Promise.resolve({ state: Notification.permission }) :
-						originalQuery(parameters)
-				);
-				(() => {
+				// Permissions => PVM14 LET'S LEAVE THIS TO Patchright ...
+				// const originalQuery = window.navigator.permissions.query;
+				// window.navigator.permissions.query = (parameters) => (
+				// 	parameters.name === 'notifications' ?
+				// 		Promise.resolve({ state: Notification.permission }) :
+				// 		originalQuery(parameters)
+				// );
+				(() => { // PVM14 => THE FUNCTION 'getEventListenersForNode' IS USED BY 'BUILDDOMTREE.JS' SO IT IS LEFT UNTOUCHED HERE ...
 					if (window._eventListenerTrackerInitialized) return;
 					window._eventListenerTrackerInitialized = true;
 
@@ -964,7 +970,7 @@ class BrowserSession(BaseModel):
 			}
 		"""
 
-		# Expose anti-detection scripts
+		# Expose anti-detection scripts => PVM14: In this case 'init_script' seems to have no effect on browser detectability
 		try:
 			await self.browser_context.add_init_script(init_script)
 		except Exception as e:
@@ -1197,16 +1203,16 @@ class BrowserSession(BaseModel):
 
 		page = None
 
-		for page in self.browser_context.pages:
+		for page in self.browser_context.pages: # => https://playwright.dev/python/docs/api/class-browsercontext#browser-context-pages
 			# apply viewport size settings to any existing pages
 			if viewport:
 				await page.set_viewport_size(viewport)
 
 			# show browser-use dvd screensaver-style bouncing loading animation on any about:blank pages
-			if page.url == 'about:blank':
-				await self._show_dvd_screensaver_loading_animation(page)
+			# if page.url == 'about:blank':
+			# 	await self._show_dvd_screensaver_loading_animation(page) # PVM14: Pretty mental masturbation I WILL PASS ...
 
-		page = page or (await self.browser_context.new_page())
+		page = page or (await self.browser_context.new_page()) # PVM14 PURE 'page' CREATED HERE IN Gordian CASE
 
 		if (not viewport) and (self.browser_profile.window_size is not None) and not self.browser_profile.headless:
 			# attempt to resize the actual browser window
