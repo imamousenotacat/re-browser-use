@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from browser_use.dom.dom_utils import DomUtils, FramesDescriptorDict
 
 if TYPE_CHECKING:
-	from playwright.async_api import Page
+	from playwright.async_api import Page, Frame, JSHandle
 
 from browser_use.dom.views import (
 	DOMBaseNode,
@@ -147,6 +147,9 @@ class DomService:
 		highlight_elements: bool,
 		focus_element: int,
 		viewport_expansion: int,
+		target_frame: Optional['Frame'] = None,
+		highlight_index: int = 0,
+		initial_root_node: Optional['JSHandle'] = None
 	) -> tuple[DOMElementNode, SelectorMap]:
 		if await self.page.evaluate('1+1') != 2:
 			raise ValueError('The page cannot evaluate javascript code properly')
@@ -174,10 +177,15 @@ class DomService:
 			'focusHighlightIndex': focus_element,
 			'viewportExpansion': viewport_expansion,
 			'debugMode': debug_mode,
+			'initialRootNode': initial_root_node,
+			'highlightIndex': highlight_index
 		}
 
 		try:
-			eval_page: dict = await self.page.evaluate(self.js_code, args)
+			if target_frame:
+				eval_page: dict = await target_frame.evaluate(self.js_code, args)
+			else:
+				eval_page: dict = await self.page.evaluate(self.js_code, args)
 		except Exception as e:
 			self.logger.error('Error evaluating JavaScript: %s', e)
 			raise
@@ -207,7 +215,7 @@ class DomService:
 				# processed_nodes,
 			)
 
-		return await self._construct_dom_tree(eval_page)
+		return await self._construct_dom_tree(eval_page) # => TODO:pvm14 import json; print(json.dumps(eval_page, indent=2))
 
 	@time_execution_async('--construct_dom_tree')
 	async def _construct_dom_tree(
