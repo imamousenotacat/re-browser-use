@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass
 from functools import wraps
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Self, Optional
 from urllib.parse import urlparse
 
 from browser_use.utils import _log_pretty_path, _log_pretty_url
@@ -26,12 +26,14 @@ from patchright.async_api import FrameLocator as PatchrightFrameLocator
 from patchright.async_api import Page as PatchrightPage
 from patchright.async_api import Playwright as Patchright
 from patchright.async_api import async_playwright as async_patchright
+from patchright.async_api import Frame as PatchrightFrame
 from playwright.async_api import Browser as PlaywrightBrowser
 from playwright.async_api import BrowserContext as PlaywrightBrowserContext
 from playwright.async_api import ElementHandle as PlaywrightElementHandle
 from playwright.async_api import FrameLocator as PlaywrightFrameLocator
 from playwright.async_api import Page as PlaywrightPage
 from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Frame as PlaywrightFrame
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, InstanceOf, PrivateAttr, model_validator
 from uuid_extensions import uuid7str
 
@@ -58,6 +60,7 @@ ElementHandle = PatchrightElementHandle | PlaywrightElementHandle
 ElementHandleInstance = InstanceOf[PatchrightElementHandle] | InstanceOf[PlaywrightElementHandle]
 FrameLocator = PatchrightFrameLocator | PlaywrightFrameLocator
 FrameLocatorInstance = InstanceOf[PatchrightFrameLocator] | InstanceOf[PlaywrightFrameLocator]
+Frame = PatchrightFrame | PlaywrightFrame
 
 # Check if running in Docker
 IN_DOCKER = os.environ.get('IN_DOCKER', 'false').lower()[0] in 'ty1'
@@ -1440,14 +1443,14 @@ class BrowserSession(BaseModel):
 
 	@require_initialization
 	@time_execution_async('--remove_highlights')
-	async def remove_highlights(self):
+	async def remove_highlights(self, target_frame: Optional[Frame] = None):
 		"""
 		Removes all highlight overlays and labels created by the highlightElement function.
 		Handles cases where the page might be closed or inaccessible.
 		"""
-		page = await self.get_current_page()
+		target = target_frame if target_frame else await self.get_current_page()
 		try:
-			await page.evaluate(
+			await target.evaluate(
 				"""
                 try {
                     // Remove the highlight container and all its contents
