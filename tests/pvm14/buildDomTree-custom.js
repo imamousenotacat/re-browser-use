@@ -1,4 +1,3 @@
-window.__buildDomTreeFn =
 (
   args = {
     doHighlightElements: true,
@@ -188,20 +187,20 @@ window.__buildDomTreeFn =
   // Add a new function to get cached client rects
   function getCachedClientRects(element) {
     if (!element) return null;
-
+    
     if (DOM_CACHE.clientRects.has(element)) {
       if (debugMode && PERF_METRICS) {
         PERF_METRICS.cacheMetrics.clientRectsCacheHits++;
       }
       return DOM_CACHE.clientRects.get(element);
     }
-
+    
     if (debugMode && PERF_METRICS) {
       PERF_METRICS.cacheMetrics.clientRectsCacheMisses++;
     }
-
+    
     const rects = element.getClientRects();
-
+    
     if (rects) {
       DOM_CACHE.clientRects.set(element, rects);
     }
@@ -237,7 +236,7 @@ window.__buildDomTreeFn =
    */
   function highlightElement(element, index, parentIframe = null) {
     pushTiming('highlighting');
-
+    
     if (!element) return index;
 
     // Store overlays and the single label for updating
@@ -445,7 +444,7 @@ window.__buildDomTreeFn =
       const throttledUpdatePositions = throttleFunction(updatePositions, 16); // ~60fps
       window.addEventListener('scroll', throttledUpdatePositions, true);
       window.addEventListener('resize', throttledUpdatePositions);
-
+      
       // Add cleanup function
       cleanupFn = () => {
         window.removeEventListener('scroll', throttledUpdatePositions, true);
@@ -454,10 +453,10 @@ window.__buildDomTreeFn =
         overlays.forEach(overlay => overlay.element.remove());
         if (label) label.remove();
       };
-
+      
       // Then add fragment to container in one operation
       container.appendChild(fragment);
-
+      
       return index + 1;
     } finally {
       popTiming('highlighting');
@@ -475,7 +474,7 @@ window.__buildDomTreeFn =
       window._highlightCleanupFunctions.forEach(fn => fn());
       window._highlightCleanupFunctions = [];
     }
-
+    
     // Also remove the container
     const container = document.getElementById(HIGHLIGHT_CONTAINER_ID);
     if (container) container.remove();
@@ -485,16 +484,16 @@ window.__buildDomTreeFn =
     if (!currentElement.parentElement) {
       return 0; // No parent means no siblings
     }
-
+  
     const tagName = currentElement.nodeName.toLowerCase();
-
+  
     const siblings = Array.from(currentElement.parentElement.children)
       .filter((sib) => sib.nodeName.toLowerCase() === tagName);
-
+  
     if (siblings.length === 1) {
       return 0; // Only element of its type
     }
-
+  
     const index = siblings.indexOf(currentElement) + 1; // 1-based index
     return index;
   }
@@ -504,7 +503,7 @@ window.__buildDomTreeFn =
    */
   function getXPathTree(element, stopAtBoundary = true) {
     if (xpathCache.has(element)) return xpathCache.get(element);
-
+    
     const segments = [];
     let currentElement = element;
 
@@ -555,7 +554,7 @@ window.__buildDomTreeFn =
             style.opacity !== '0';
         }
       }
-
+      
       const range = document.createRange();
       range.selectNodeContents(textNode);
       const rects = range.getClientRects(); // Use getClientRects for Range
@@ -651,9 +650,9 @@ window.__buildDomTreeFn =
 
   /**
    * Checks if an element is interactive.
-   *
+   * 
    * lots of comments, and uncommented code - to show the logic of what we already tried
-   *
+   * 
    * One of the things we tried at the beginning was also to use event listeners, and other fancy class, style stuff -> what actually worked best was just combining most things with computed cursor style :)
    */
   function isInteractiveElement(element) {
@@ -708,7 +707,7 @@ window.__buildDomTreeFn =
       'inherit'      // Inherited value
       //? Let's just include all potentially clickable elements that are not specifically blocked
       // 'none',        // No cursor
-      // 'default',     // Default cursor
+      // 'default',     // Default cursor 
       // 'auto',        // Browser default
     ]);
 
@@ -797,7 +796,7 @@ window.__buildDomTreeFn =
     if (element.getAttribute("contenteditable") === "true" || element.isContentEditable) {
       return true;
     }
-
+    
     // Added enhancement to capture dropdown interactive elements
     if (element.classList && (
       element.classList.contains("button") ||
@@ -885,7 +884,7 @@ window.__buildDomTreeFn =
     if (viewportExpansion === -1) {
       return true;
     }
-
+    
     const rects = getCachedClientRects(element); // Replace element.getClientRects()
 
     if (!rects || rects.length === 0) {
@@ -1139,7 +1138,7 @@ window.__buildDomTreeFn =
     if (element.hasAttribute('onclick') || typeof element.onclick === 'function') {
       return true;
     }
-
+    
     // Check for other common interaction event listeners
     try {
       const getEventListenersForNode = window.getEventListenersForNode;
@@ -1198,7 +1197,7 @@ window.__buildDomTreeFn =
     if (shouldHighlight) {
       // Check viewport status before assigning index and highlighting
       nodeData.isInViewport = isInExpandedViewport(node, viewportExpansion);
-
+      
       // When viewportExpansion is -1, all interactive elements should get a highlight index
       // regardless of viewport status
       if (nodeData.isInViewport || viewportExpansion === -1) {
@@ -1227,7 +1226,7 @@ window.__buildDomTreeFn =
    */
   function buildDomTree(node, parentIframe = null, isParentHighlighted = false) {
     // Fast rejection checks first
-    if (!node || node.id === HIGHLIGHT_CONTAINER_ID ||
+    if (!node || node.id === HIGHLIGHT_CONTAINER_ID || 
         (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.TEXT_NODE)) {
       if (debugMode) PERF_METRICS.nodeMetrics.skippedNodes++;
       return null;
@@ -1438,7 +1437,7 @@ window.__buildDomTreeFn =
       // Check if the anchor has actual dimensions
       const rect = getCachedBoundingRect(node);
       const hasSize = (rect && rect.width > 0 && rect.height > 0) || (node.offsetWidth > 0 || node.offsetHeight > 0);
-
+      
       if (!hasSize) {
         if (debugMode) PERF_METRICS.nodeMetrics.skippedNodes++;
         return null;
