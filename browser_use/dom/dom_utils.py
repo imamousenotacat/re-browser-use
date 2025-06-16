@@ -230,14 +230,16 @@ class DomUtils:
       if children:
         logger.trace(f"  (Frame: {frame}) Found [{len(children)}] children for host xpath = [{xpath_of_host}] ... ")
         for child_handle in children:
-          logger.trace(await self.get_js_handle_description(child_handle, f"    Child Node"))
+          if logger.isEnabledFor(logging.TRACE):
+            logger.trace(await self.get_js_handle_description(child_handle, f"    Child Node"))
           # I'm trying to get the closed ShadowRoot by using element => element.getRootNode()
           shadow_root_candidate = await child_handle.evaluate_handle("element => element.getRootNode()")
           node_type_js_handle = await shadow_root_candidate.get_property('nodeType')
           node_type = await node_type_js_handle.json_value()
           await node_type_js_handle.dispose()  # Dispose the nodeType handle
           if node_type == 11:  # ShadowRoot nodes are #document-fragment
-            logger.trace(await self.get_js_handle_description(shadow_root_candidate, f"    ShadowRoot"))
+            if logger.isEnabledFor(logging.TRACE):
+              logger.trace(await self.get_js_handle_description(shadow_root_candidate, f"    ShadowRoot"))
             # Found the shadow root. Dispose all child_handles obtained in this frame.
             for child in children:
               await child.dispose()
