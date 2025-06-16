@@ -3,13 +3,15 @@ import logging
 import re
 
 from browser_use.dom.views import DOMElementNode, DOMBaseNode
+from browser_use.logging_config import addLoggingLevel
 from dataclasses import dataclass
 from patchright.async_api import Error, Frame, Page, CDPSession, JSHandle
 from typing import List, Tuple, Dict, Any, Protocol, Optional
 from urllib.parse import urlparse
 
-logger = logging.getLogger(__name__)
+addLoggingLevel('TRACE', logging.DEBUG - 5) # to see TRACE level: pytest -v -rA -s --log-cli-level=5 tests\test_boot_detection.py
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ClosedShadowRootDescriptor:
@@ -39,7 +41,7 @@ class DomUtils:
       for shadow_root_item in node['shadowRoots']:
         if shadow_root_item.get('shadowRootType') == 'closed' and shadow_root_item.get('backendNodeId'):
           # 'current_node_xpath' is the XPath of 'node' (the host). This is what we record.
-          logger.info(f"DETECTED closed ShadowRoot. Host XPath: {current_node_xpath}. Host nodeName: {node.get('nodeName')}")
+          logger.trace(f"DETECTED closed ShadowRoot. Host XPath: {current_node_xpath}. Host nodeName: {node.get('nodeName')}")
           results.append(current_node_xpath)
         # Recursively search *within* this shadow_root_item.
         self._get_closed_shadow_roots_from_node(shadow_root_item, current_node_xpath, results)
@@ -55,7 +57,7 @@ class DomUtils:
         # Calculate XPath segment for child_dict relative to 'node'
         child_segment = self._get_xpath_segment(child_dict, node)
         # Construct the full XPath for the child node => The XPath generated here must be exactly the same as the one obtained in buildDomTree.js.
-        # That's the reason for the ugly line below
+        # That's the reason for the ugly line below (THIS IS NOT TRUE ANYMORE BUT FOR THE MOMENT I KEEP IT LIKE THIS)
         path_to_child_node = f"{current_node_xpath}/{child_segment}" if current_node_xpath and child_segment \
           else child_segment if child_segment else current_node_xpath
         self._get_closed_shadow_roots_from_node(child_dict, path_to_child_node, results)
@@ -180,16 +182,16 @@ class DomUtils:
     return target_frames_and_cdp_sessions
 
   async def _get_cdp_session_for_frame(self, page: Page, frame: Frame) -> CDPSession | None:
-    logger.debug(f"Trying to create CDPSession for frame={frame} ...")
+    logger.trace(f"Trying to create CDPSession for frame={frame} ...")
     try:
       cdp_session = await page.context.new_cdp_session(frame)
-      logger.info(f"{type(cdp_session)} object created for Frame={frame} ...")
+      logger.trace(f"{type(cdp_session)} object created for Frame={frame} ...")
       return cdp_session
     except Error as e:
       # Avoiding the Error: BrowserContext.new_cdp_session:
       # This frame does not have a separate CDP session, it is a part of the parent frame's session
       # "This could probably be avoided by inspecting the URLs, but I’ll pass."
-      logger.debug(f"Error [{e.message}] while creating CDPSession for frame={frame} ...")
+      logger.trace(f"Error [{e.message}] while creating CDPSession for frame={frame} ...")
       return None
 
   async def _get_xpaths_to_closed_shadow_roots_from_frame(self, cdp_session: CDPSession, frame: Frame) -> List[str]:
@@ -208,9 +210,9 @@ class DomUtils:
     self._get_closed_shadow_roots_from_node(document_result['root'], "", xpaths)
     if xpaths:
       for xpath_item in xpaths:
-        logger.info(f"Found closed ShadowRoot using CDP at XPath: {xpath_item} in frame {frame}")
+        logger.debug(f"Found closed ShadowRoot using CDP at XPath: {xpath_item} in frame {frame}")
     else:
-      logger.debug(f"Found 0 closed ShadowRoot using CDP in frame {frame}")
+      logger.trace(f"Found 0 closed ShadowRoot using CDP in frame {frame}")
 
     return xpaths
 
@@ -226,16 +228,16 @@ class DomUtils:
       children = await element_locator_for_host_children.element_handles()
       # Proceed to child frames if handles can't be obtained
       if children:
-        logger.info(f"  (Frame: {frame}) Found [{len(children)}] children for host xpath = [{xpath_of_host}] ... ")
+        logger.trace(f"  (Frame: {frame}) Found [{len(children)}] children for host xpath = [{xpath_of_host}] ... ")
         for child_handle in children:
-          logger.info(await self.get_js_handle_description(child_handle, f"    Child Node"))
+          logger.trace(await self.get_js_handle_description(child_handle, f"    Child Node"))
           # I'm trying to get the closed ShadowRoot by using element => element.getRootNode()
           shadow_root_candidate = await child_handle.evaluate_handle("element => element.getRootNode()")
           node_type_js_handle = await shadow_root_candidate.get_property('nodeType')
           node_type = await node_type_js_handle.json_value()
           await node_type_js_handle.dispose()  # Dispose the nodeType handle
           if node_type == 11:  # ShadowRoot nodes are #document-fragment
-            logger.info(await self.get_js_handle_description(shadow_root_candidate, f"    ShadowRoot"))
+            logger.trace(await self.get_js_handle_description(shadow_root_candidate, f"    ShadowRoot"))
             # Found the shadow root. Dispose all child_handles obtained in this frame.
             for child in children:
               await child.dispose()
@@ -265,7 +267,7 @@ class DomUtils:
     # and from that children a little bit of trickery to get the ElementHandle to the parent closed shadow root ...
     frames_descriptor_dict[frame] = []
     for xpath in await self._get_xpaths_to_closed_shadow_roots_from_frame(cdp_session, frame):
-      logger.info(f"Attempting to find ShadowRoot for host XPath: [{xpath}] (identified in frame: {frame.url})")
+      logger.trace(f"Attempting to find ShadowRoot for host XPath: [{xpath}] (identified in frame: {frame.url})")
       # Start search in the frame whose associated CDPSession found the shadow root and computed its XPath ...
       shadow_root_handle, frame_container = await self._find_shadow_root_in_frames_recursively(frame, xpath)
       if shadow_root_handle:
