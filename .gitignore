@@ -14,7 +14,7 @@ __pycache__/
 venv/
 
 # IDEs
-.vscode/
+#.vscode/ I want my .vscode configuration to be part of this branch
 .idea/
 
 # Build files
