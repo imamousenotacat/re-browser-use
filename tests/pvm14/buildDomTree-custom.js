@@ -1,3 +1,4 @@
+window.__buildDomTreeFn =
 (
   args = {
     doHighlightElements: true,
