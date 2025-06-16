@@ -70,6 +70,6 @@ async def test_nopecha(llm):
     assert history.is_done() and history.is_successful()
 
     # page = await browser_context.get_current_page()
-    await expect(page).to_have_title("NopeCHA - CAPTCHA Demo", timeout=10000)  # Better waiting for the results of the click
-    await browser.close()  # Closing the browse and getting rid of the ugly final message ...
-    await browser_context.close()
+    await expect(page).to_have_title("NopeCHA - CAPTCHA Demo", timeout=10000)  # Checking the results of the click
+    await browser.close()  # Closing the browser => NOT NEEDED ANYMORE ...
+    # await browser_context.close() => IT WAS MAKING THE TEST FAIL ...
