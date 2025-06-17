@@ -327,8 +327,8 @@ class BrowserSession(BaseModel):
 
 					# resize the existing pages and set up foreground tab detection
 					await self._setup_viewports()
-					# await self._setup_current_page_change_listeners() # PVM14 => In the considered use case, the browser is left to its own devices,
-					await self._start_context_tracing()                 #          so this is irrelevant. Probably it will be conditionally removed with a flag
+					await self._setup_current_page_change_listeners() # TODO: PVM14 => In the considered use case, the browser is left to its own devices,
+					await self._start_context_tracing()               #       so this is irrelevant. Probably it will be conditionally removed with a flag
 				except BaseException:
 					self.initialized = False
 					raise
