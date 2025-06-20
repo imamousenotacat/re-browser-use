@@ -385,7 +385,8 @@ My next action is to click on the iPhone link at index [4] to navigate to Apple'
 
 		# Handle case where model_output is None (e.g., parsing failed)
 		if model_output is None:
-			self.agent_history_description += f"""## Step {step_number}
+			if isinstance(step_number, int) and step_number > 0:
+				self.agent_history_description += f"""## Step {step_number}
 No model output (parsing failed)
 {action_results}
 """
