@@ -27,23 +27,7 @@ async def test_nopecha(llm):
     # From https://github.com/browser-use/browser-use/blob/main/docs/customize/real-browser.mdx#method-b-connect-using-existing-playwright-objects
     # Another way of cutting Gordian knots and simplify as much as I can while adapting to the convoluted initialization process ...
 
-    # Creating everything clean and pure outside ...
-    chromium = playwright.chromium
-    browser = await chromium.launch(headless=False)
-    browser_context = await browser.new_context()
-    page = await browser_context.new_page()
-    browser_profile = BrowserProfile(
-      stealth=True
-    )
-
-    # Passing all the objects to the session not to create anything internally ...
-    browser_session = BrowserSession(
-      playwright=playwright,
-      browser=browser,
-      browser_context=browser_context,
-      page=page,
-      browser_profile=browser_profile,
-    )
+    browser_session = await create_browser_session(playwright)
 
     agent = Agent(
       task=(
@@ -69,7 +53,29 @@ async def test_nopecha(llm):
     print(f'FINAL RESULT ARMAS PAL PUEBLO: {result}')
     assert history.is_done() and history.is_successful()
 
-    # page = await browser_context.get_current_page()
+    page = await browser_session.get_current_page()
     await expect(page).to_have_title("NopeCHA - CAPTCHA Demo", timeout=10000)  # Checking the results of the click
-    await browser.close()  # Closing the browser => NOT NEEDED ANYMORE ...
+    # await browser.close()  Closing the browser => NOT NEEDED ANYMORE ...
     # await browser_context.close() => IT WAS MAKING THE TEST FAIL ...
+
+
+async def create_browser_session(playwright):
+  # Creating everything clean and pure outside ...
+  chromium = playwright.chromium
+  browser = await chromium.launch(headless=False)
+  browser_context = await browser.new_context()
+  page = await browser_context.new_page()
+  browser_profile = BrowserProfile(
+    stealth=True
+  )
+
+  # Passing all the objects to the session not to create anything internally ...
+  browser_session = BrowserSession(
+    playwright=playwright,
+    browser=browser,
+    browser_context=browser_context,
+    page=page,
+    browser_profile=browser_profile,
+  )
+
+  return browser_session
