@@ -40,12 +40,18 @@
 # ==============================================================================================================
 import asyncio
 import base64
+import gc
 import io
 import logging
 import re
 import shutil
+import signal
+import sys
+import threading
+import time
 
 import anyio
+import psutil
 from lmnr import AsyncLaminarClient, Laminar, observe
 from PIL import Image
 
@@ -56,6 +62,197 @@ logger = logging.getLogger(__name__)
 
 Laminar.initialize()
 laminar_client = AsyncLaminarClient()
+
+# Global variables for resource monitoring
+_resource_monitor_task = None
+_resource_monitor_stop_event = None
+_graceful_shutdown_initiated = False
+
+
+def get_system_resources():
+	"""Get current system resource usage"""
+	try:
+		# Memory usage
+		memory = psutil.virtual_memory()
+		memory_percent = memory.percent
+		memory_available_gb = memory.available / (1024**3)
+
+		# CPU usage
+		cpu_percent = psutil.cpu_percent(interval=1)
+
+		# Load average (Unix only)
+		try:
+			load_avg = psutil.getloadavg()
+			load_1min = load_avg[0]
+		except (AttributeError, OSError):
+			load_1min = 0.0
+
+		# Process count
+		process_count = len(psutil.pids())
+
+		# Chrome/Browser processes
+		chrome_processes = []
+		python_processes = []
+		for proc in psutil.process_iter(['pid', 'name', 'memory_percent', 'cpu_percent']):
+			try:
+				name = proc.info['name'].lower()
+				if 'chrome' in name or 'chromium' in name:
+					chrome_processes.append(proc.info)
+				elif 'python' in name:
+					python_processes.append(proc.info)
+			except (psutil.NoSuchProcess, psutil.AccessDenied):
+				continue
+
+		return {
+			'memory_percent': memory_percent,
+			'memory_available_gb': memory_available_gb,
+			'cpu_percent': cpu_percent,
+			'load_1min': load_1min,
+			'process_count': process_count,
+			'chrome_process_count': len(chrome_processes),
+			'python_process_count': len(python_processes),
+			'chrome_processes': chrome_processes[:5],  # Top 5 chrome processes
+			'python_processes': python_processes[:5],  # Top 5 python processes
+		}
+	except Exception as e:
+		logger.warning(f'Failed to get system resources: {type(e).__name__}: {e}')
+		return {
+			'memory_percent': 0,
+			'memory_available_gb': 0,
+			'cpu_percent': 0,
+			'load_1min': 0,
+			'process_count': 0,
+			'chrome_process_count': 0,
+			'python_process_count': 0,
+			'chrome_processes': [],
+			'python_processes': [],
+		}
+
+
+def log_system_resources(context: str = ''):
+	"""Log current system resource usage"""
+	resources = get_system_resources()
+	logger.info(f'=== SYSTEM RESOURCES {context} ===')
+	logger.info(f'Memory: {resources["memory_percent"]:.1f}% used, {resources["memory_available_gb"]:.2f}GB available')
+	logger.info(f'CPU: {resources["cpu_percent"]:.1f}%, Load: {resources["load_1min"]:.2f}')
+	logger.info(
+		f'Processes: {resources["process_count"]} total, {resources["chrome_process_count"]} Chrome, {resources["python_process_count"]} Python'
+	)
+
+	if resources['chrome_processes']:
+		logger.info('Top Chrome processes:')
+		for proc in resources['chrome_processes']:
+			logger.info(
+				f'  PID {proc["pid"]}: {proc["name"]} - CPU: {proc["cpu_percent"]:.1f}%, Memory: {proc["memory_percent"]:.1f}%'
+			)
+
+	logger.info('=' * (20 + len(context)))
+
+
+async def start_resource_monitoring(interval: int = 30):
+	"""Start background resource monitoring"""
+	global _resource_monitor_task, _resource_monitor_stop_event
+
+	if _resource_monitor_task is not None:
+		logger.warning('Resource monitoring is already running')
+		return
+
+	_resource_monitor_stop_event = asyncio.Event()
+
+	async def monitor_loop():
+		"""Background monitoring loop"""
+		logger.info(f'Starting resource monitoring (interval: {interval}s)')
+		try:
+			while not _resource_monitor_stop_event.is_set():
+				try:
+					log_system_resources('MONITOR')
+
+					# Check for concerning resource levels
+					resources = get_system_resources()
+					if resources['memory_percent'] > 85:
+						logger.warning(f'⚠️ HIGH MEMORY USAGE: {resources["memory_percent"]:.1f}%')
+					if resources['cpu_percent'] > 90:
+						logger.warning(f'⚠️ HIGH CPU USAGE: {resources["cpu_percent"]:.1f}%')
+					if resources['chrome_process_count'] > 20:
+						logger.warning(f'⚠️ HIGH CHROME PROCESS COUNT: {resources["chrome_process_count"]}')
+
+					# Force garbage collection periodically
+					if resources['memory_percent'] > 70:
+						logger.info('Running garbage collection due to high memory usage')
+						gc.collect()
+
+				except Exception as e:
+					logger.error(f'Error in resource monitoring: {type(e).__name__}: {e}')
+
+				try:
+					await asyncio.wait_for(_resource_monitor_stop_event.wait(), timeout=interval)
+					break  # Event was set, exit loop
+				except TimeoutError:
+					continue  # Timeout reached, continue monitoring
+		except Exception as e:
+			logger.error(f'Resource monitoring loop crashed: {type(e).__name__}: {e}')
+		finally:
+			logger.info('Resource monitoring stopped')
+
+	_resource_monitor_task = asyncio.create_task(monitor_loop())
+
+
+async def stop_resource_monitoring():
+	"""Stop background resource monitoring"""
+	global _resource_monitor_task, _resource_monitor_stop_event
+
+	if _resource_monitor_stop_event is not None:
+		_resource_monitor_stop_event.set()
+
+	if _resource_monitor_task is not None:
+		try:
+			await asyncio.wait_for(_resource_monitor_task, timeout=5.0)
+		except TimeoutError:
+			logger.warning('Resource monitoring task did not stop gracefully')
+			_resource_monitor_task.cancel()
+			try:
+				await _resource_monitor_task
+			except asyncio.CancelledError:
+				pass
+
+		_resource_monitor_task = None
+		_resource_monitor_stop_event = None
+
+
+def setup_signal_handlers():
+	"""Setup signal handlers for graceful shutdown"""
+	global _graceful_shutdown_initiated
+
+	def signal_handler(signum, frame):
+		global _graceful_shutdown_initiated
+		if _graceful_shutdown_initiated:
+			logger.critical('🔥 FORCE EXIT: Second signal received, terminating immediately')
+			sys.exit(1)
+
+		_graceful_shutdown_initiated = True
+		logger.warning(f'⚠️ GRACEFUL SHUTDOWN: Received signal {signum}, initiating graceful shutdown...')
+		log_system_resources('SHUTDOWN')
+
+		# Try to stop resource monitoring
+		try:
+			loop = asyncio.get_event_loop()
+			if loop.is_running():
+				loop.create_task(stop_resource_monitoring())
+		except Exception as e:
+			logger.error(f'Failed to stop resource monitoring during shutdown: {e}')
+
+		# Give some time for cleanup, then force exit
+		def force_exit():
+			time.sleep(10)
+			if _graceful_shutdown_initiated:
+				logger.critical('🔥 FORCE EXIT: Graceful shutdown timeout, terminating')
+				sys.exit(1)
+
+		threading.Thread(target=force_exit, daemon=True).start()
+
+	# Register signal handlers
+	signal.signal(signal.SIGINT, signal_handler)
+	signal.signal(signal.SIGTERM, signal_handler)
 
 
 def encode_image(image):
@@ -279,7 +476,6 @@ import http.client
 import json
 import os
 import subprocess
-import time
 from datetime import datetime
 from pathlib import Path
 
@@ -1216,9 +1412,20 @@ async def run_task_with_semaphore(
 	include_result: bool = False,
 ) -> dict:
 	"""Clean pipeline approach for running tasks"""
-	logger.info(f'Task {task.task_id}: Waiting to acquire semaphore (current value: ~{semaphore_runs._value})')
+	task_start_time = time.time()
+	logger.info(f'🚀 Task {task.task_id}: Starting execution pipeline')
+	logger.info(f'📊 Task {task.task_id}: Waiting to acquire semaphore (current available: ~{semaphore_runs._value})')
+	log_system_resources(f'TASK_START_{task.task_id}')
+
+	semaphore_acquired_time = None
 	async with semaphore_runs:
-		logger.info(f'Task {task.task_id}: Semaphore acquired (remaining slots: ~{semaphore_runs._value})')
+		semaphore_acquired_time = time.time()
+		wait_time = semaphore_acquired_time - task_start_time
+		logger.info(
+			f'✅ Task {task.task_id}: Semaphore acquired after {wait_time:.2f}s (remaining slots: ~{semaphore_runs._value})'
+		)
+		log_system_resources(f'SEMAPHORE_ACQUIRED_{task.task_id}')
+
 		task_result = None
 		browser_session = None
 		laminar_task_link = None
@@ -1477,12 +1684,26 @@ async def run_task_with_semaphore(
 			else:
 				logger.info(f'Task {task.task_id}: No browser to cleanup')
 
-		logger.info(f'Task {task.task_id}: About to release semaphore (remaining slots: ~{semaphore_runs._value})')
-		return (
+		task_end_time = time.time()
+		total_task_time = task_end_time - task_start_time
+		semaphore_hold_time = task_end_time - (semaphore_acquired_time or task_start_time)
+
+		logger.info(
+			f'🏁 Task {task.task_id}: Completed in {total_task_time:.2f}s (semaphore held for {semaphore_hold_time:.2f}s)'
+		)
+		logger.info(f'📊 Task {task.task_id}: About to release semaphore (remaining slots will be: ~{semaphore_runs._value + 1})')
+		log_system_resources(f'TASK_END_{task.task_id}')
+
+		final_result = (
 			task_result.get_local_status()
 			if task_result
 			else {'task_id': task.task_id, 'success': False, 'error': 'Task result not available'}
 		)
+
+		logger.info(
+			f'🎯 Task {task.task_id}: Final status - Success: {final_result.get("success", False)}, Error: {final_result.get("error", "None")}'
+		)
+		return final_result
 
 
 async def run_multiple_tasks(
@@ -1513,42 +1734,110 @@ async def run_multiple_tasks(
 	"""
 	Run multiple tasks in parallel and evaluate results.
 	"""
-	logger.info(f'Creating semaphore with max_parallel_runs={max_parallel_runs}')
+	batch_start_time = time.time()
+	logger.info(f'🚀 BATCH START: Creating semaphore with max_parallel_runs={max_parallel_runs}')
+	log_system_resources('BATCH_START')
+
 	semaphore_runs = asyncio.Semaphore(max_parallel_runs)
 	tasks_to_run = tasks[start_index:end_index] if end_index else tasks[start_index:]
 
-	logger.info(f'Starting {len(tasks_to_run)} tasks with parallel limit of {max_parallel_runs}')
+	logger.info(f'📊 Starting {len(tasks_to_run)} tasks with parallel limit of {max_parallel_runs}')
+	logger.info(f'📋 Task range: {start_index} to {end_index or len(tasks)} (total tasks available: {len(tasks)})')
 
-	# Run all tasks in parallel with additional parameters
-	task_results = await asyncio.gather(
-		*(
-			run_task_with_semaphore(
-				task=task,
-				run_id=run_id,
-				lmnr_run_id=lmnr_run_id,
-				laminar_eval_link=laminar_eval_link,
-				convex_url=convex_url,
-				secret_key=secret_key,
-				eval_model=eval_model,
-				llm=llm,  # Pass the agent LLM
-				max_steps_per_task=max_steps_per_task,
-				headless=headless,
-				use_vision=use_vision,
-				semaphore_runs=semaphore_runs,  # Pass the semaphore
-				fresh_start=fresh_start,
-				use_serp=use_serp,
-				enable_memory=enable_memory,
-				memory_interval=memory_interval,
-				max_actions_per_step=max_actions_per_step,
-				validate_output=validate_output,
-				planner_llm=planner_llm,
-				planner_interval=planner_interval,
-				include_result=include_result,
-			)
-			for task in tasks_to_run
-		),
-		return_exceptions=True,  # Prevent task cancellation cascade
-	)
+	# Start resource monitoring
+	await start_resource_monitoring(interval=30)
+
+	# Setup signal handlers for graceful shutdown
+	setup_signal_handlers()
+
+	# Create a heartbeat task for long-running operations
+	heartbeat_task = None
+	heartbeat_stop_event = asyncio.Event()
+
+	async def heartbeat_logger():
+		"""Log periodic heartbeat to show the process is alive"""
+		heartbeat_count = 0
+		while not heartbeat_stop_event.is_set():
+			try:
+				await asyncio.wait_for(heartbeat_stop_event.wait(), timeout=60.0)  # 1-minute heartbeat
+				break  # Event was set, exit
+			except TimeoutError:
+				heartbeat_count += 1
+				elapsed = time.time() - batch_start_time
+				logger.info(f'💓 HEARTBEAT {heartbeat_count}: Batch still running after {elapsed:.1f}s')
+				log_system_resources('HEARTBEAT')
+
+				# Check for potential issues
+				resources = get_system_resources()
+				if resources['memory_percent'] > 90:
+					logger.critical(f'🚨 CRITICAL: Memory usage at {resources["memory_percent"]:.1f}% - potential OOM risk!')
+				if resources['chrome_process_count'] > 50:
+					logger.warning(f'⚠️ HIGH BROWSER PROCESS COUNT: {resources["chrome_process_count"]} Chrome processes')
+
+	try:
+		# Start heartbeat logging
+		heartbeat_task = asyncio.create_task(heartbeat_logger())
+		logger.info('💓 Heartbeat monitoring started')
+
+		# Run all tasks in parallel with additional parameters
+		logger.info(f'🚀 Launching {len(tasks_to_run)} parallel task executions...')
+
+		task_results = await asyncio.gather(
+			*(
+				run_task_with_semaphore(
+					task=task,
+					run_id=run_id,
+					lmnr_run_id=lmnr_run_id,
+					laminar_eval_link=laminar_eval_link,
+					convex_url=convex_url,
+					secret_key=secret_key,
+					eval_model=eval_model,
+					llm=llm,  # Pass the agent LLM
+					max_steps_per_task=max_steps_per_task,
+					headless=headless,
+					use_vision=use_vision,
+					semaphore_runs=semaphore_runs,  # Pass the semaphore
+					fresh_start=fresh_start,
+					use_serp=use_serp,
+					enable_memory=enable_memory,
+					memory_interval=memory_interval,
+					max_actions_per_step=max_actions_per_step,
+					validate_output=validate_output,
+					planner_llm=planner_llm,
+					planner_interval=planner_interval,
+					include_result=include_result,
+				)
+				for task in tasks_to_run
+			),
+			return_exceptions=True,  # Prevent task cancellation cascade
+		)
+
+		logger.info(f'✅ All {len(tasks_to_run)} parallel task executions completed')
+
+	except Exception as e:
+		logger.critical(f'🚨 CRITICAL ERROR in batch execution: {type(e).__name__}: {e}', exc_info=True)
+		log_system_resources('BATCH_ERROR')
+		# Create error results for all tasks
+		task_results = [
+			{'task_id': task.task_id, 'success': False, 'error': f'Batch execution failed: {str(e)}'} for task in tasks_to_run
+		]
+
+	finally:
+		# Cleanup: Stop heartbeat and resource monitoring
+		batch_end_time = time.time()
+		total_batch_time = batch_end_time - batch_start_time
+		logger.info(f'🏁 BATCH END: Total execution time {total_batch_time:.2f}s')
+
+		if heartbeat_task and not heartbeat_task.done():
+			heartbeat_stop_event.set()
+			try:
+				await asyncio.wait_for(heartbeat_task, timeout=5.0)
+			except TimeoutError:
+				logger.warning('Heartbeat task did not stop gracefully')
+				heartbeat_task.cancel()
+
+		await stop_resource_monitoring()
+		log_system_resources('BATCH_CLEANUP')
 
 	# Process task results and handle any exceptions returned by gather
 	processed_results = []
@@ -1557,8 +1846,9 @@ async def run_multiple_tasks(
 
 	for i, result in enumerate(task_results):
 		if isinstance(result, Exception):
-			logger.error(f'Task {i} failed with exception: {type(result).__name__}: {result}')
-			processed_results.append({'task_id': f'task_{i}', 'success': False, 'error': str(result)})
+			logger.error(f'❌ Task {i} failed with exception: {type(result).__name__}: {result}')
+			task_id = tasks_to_run[i].task_id if i < len(tasks_to_run) else f'unknown_task_{i}'
+			processed_results.append({'task_id': task_id, 'success': False, 'error': str(result)})
 			failed_tasks += 1
 		else:
 			processed_results.append(result)
@@ -1567,16 +1857,17 @@ async def run_multiple_tasks(
 			else:
 				failed_tasks += 1
 
-	logger.info(f'All {len(tasks_to_run)} tasks completed. Success: {successful_tasks}, Failed: {failed_tasks}')
+	logger.info(f'📊 FINAL RESULTS: {len(tasks_to_run)} tasks completed. Success: {successful_tasks}, Failed: {failed_tasks}')
+	logger.info(f'📈 Success rate: {successful_tasks / len(tasks_to_run) * 100:.1f}%')
 
 	# After all tasks are complete, calculate a local summary
-	logger.info('All tasks completed. Calculating result summary...')
+	logger.info('📋 All tasks completed. Calculating result summary...')
 	summary = calculate_local_summary()
 
 	# Log the summary statistics
-	logger.info(f'Completed {summary["total_tasks"]} tasks')
-	logger.info(f'Success rate: {summary["success_rate"]:.2%}')
-	logger.info(f'Average score: {summary["average_score"]:.2f}')
+	logger.info(f'📊 Completed {summary["total_tasks"]} tasks')
+	logger.info(f'📈 Success rate: {summary["success_rate"]:.2%}')
+	logger.info(f'⭐ Average score: {summary["average_score"]:.2f}')
 
 	return {'task_results': processed_results, 'summary': summary}
 
@@ -2088,6 +2379,11 @@ if __name__ == '__main__':
 				exit(1)
 		# -----------------
 
+		# Log initial system state
+	logger.info('🔧 EVALUATION STARTUP')
+	log_system_resources('STARTUP')
+
+	try:
 		results = asyncio.run(
 			run_evaluation_pipeline(
 				tasks=tasks,
@@ -2116,20 +2412,32 @@ if __name__ == '__main__':
 			)
 		)
 
-		logger.info('Task completed. Saving results...')
-		# Save results
-		timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-		results_file = f'saved_trajectories/eval_results_{timestamp}.json'
+		logger.info('✅ EVALUATION COMPLETED SUCCESSFULLY')
+		log_system_resources('SUCCESS_COMPLETION')
 
-		# Convert results to JSON-serializable format
-		serializable_results = {'summary': results['summary']}
+	except KeyboardInterrupt:
+		logger.warning('⚠️ EVALUATION INTERRUPTED by user (Ctrl+C)')
+		log_system_resources('INTERRUPTED')
+		raise
+	except Exception as e:
+		logger.critical(f'🚨 EVALUATION FAILED: {type(e).__name__}: {e}', exc_info=True)
+		log_system_resources('FAILED_COMPLETION')
+		raise
 
-		with open(results_file, 'w') as f:
-			json.dump(serializable_results, f, indent=2)
+	logger.info('Task completed. Saving results...')
+	# Save results
+	timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+	results_file = f'saved_trajectories/eval_results_{timestamp}.json'
 
-		# Print summary
-		summary = results['summary']
-		logger.info(f'Completed {summary["total_tasks"]} tasks.')
-		logger.info(f'Success rate: {summary["success_rate"]:.2%}')
-		logger.info(f'Average score: {summary["average_score"]:.2f}')
-		logger.info(f'Results saved to {results_file}')
+	# Convert results to JSON-serializable format
+	serializable_results = {'summary': results['summary']}
+
+	with open(results_file, 'w') as f:
+		json.dump(serializable_results, f, indent=2)
+
+	# Print summary
+	summary = results['summary']
+	logger.info(f'Completed {summary["total_tasks"]} tasks.')
+	logger.info(f'Success rate: {summary["success_rate"]:.2%}')
+	logger.info(f'Average score: {summary["average_score"]:.2f}')
+	logger.info(f'Results saved to {results_file}')
