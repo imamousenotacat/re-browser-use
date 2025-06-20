@@ -4,19 +4,17 @@ Test boot detection functionality.
 import os
 import pytest
 from langchain_google_genai import ChatGoogleGenerativeAI
-from pydantic import SecretStr
 
-from browser_use import BrowserSession, BrowserProfile
 from browser_use.agent.service import Agent
 from browser_use.agent.views import AgentHistoryList
 from patchright.async_api import async_playwright, expect
+from tests.test_utils import create_browser_session
 
 
 @pytest.fixture
 def llm():
 	"""Initialize language model for testing"""
-	api_key = os.getenv('GEMINI_API_KEY','')
-	return ChatGoogleGenerativeAI(model='gemini-2.0-flash', api_key=SecretStr(api_key))
+	return ChatGoogleGenerativeAI(model='gemini-2.0-flash')
 
 @pytest.mark.asyncio
 async def test_nopecha(llm):
@@ -57,25 +55,3 @@ async def test_nopecha(llm):
     await expect(page).to_have_title("NopeCHA - CAPTCHA Demo", timeout=10000)  # Checking the results of the click
     # await browser.close()  Closing the browser => NOT NEEDED ANYMORE ...
     # await browser_context.close() => IT WAS MAKING THE TEST FAIL ...
-
-
-async def create_browser_session(playwright):
-  # Creating everything clean and pure outside ...
-  chromium = playwright.chromium
-  browser = await chromium.launch(headless=False)
-  browser_context = await browser.new_context()
-  page = await browser_context.new_page()
-  browser_profile = BrowserProfile(
-    stealth=True
-  )
-
-  # Passing all the objects to the session not to create anything internally ...
-  browser_session = BrowserSession(
-    playwright=playwright,
-    browser=browser,
-    browser_context=browser_context,
-    page=page,
-    browser_profile=browser_profile,
-  )
-
-  return browser_session

@@ -15,13 +15,13 @@ import warnings
 
 import aiofiles
 import yaml
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 
 from browser_use.agent.service import Agent
 from browser_use.agent.views import AgentHistoryList
-from browser_use.browser.profile import BrowserProfile
-from browser_use.browser.session import BrowserSession
+from patchright.async_api import async_playwright as async_patchright
+from tests.test_utils import create_browser_session
 
 # --- CONFIG ---
 MAX_PARALLEL = 10
@@ -60,19 +60,14 @@ async def run_single_task(task_file):
 		print(f'[DEBUG] Task: {task[:100]}...', file=sys.stderr)
 		print(f'[DEBUG] Max steps: {max_steps}', file=sys.stderr)
 
-		agent_llm = ChatOpenAI(model='gpt-4.1-mini')
-		judge_llm = ChatOpenAI(model='gpt-4.1-mini')
+		agent_llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash')
+		judge_llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash')
 		print('[DEBUG] LLMs initialized', file=sys.stderr)
 
 		# Each subprocess gets its own profile and session
 		print('[DEBUG] Creating browser session...', file=sys.stderr)
-		profile = BrowserProfile(
-			headless=True,
-			user_data_dir=None,
-			chromium_sandbox=False,  # Disable sandbox for CI environment (GitHub Actions)
-			stealth=True,
-		)
-		session = BrowserSession(browser_profile=profile)
+		playwright = await async_patchright().start()
+		session = await create_browser_session(playwright)
 		print('[DEBUG] Browser session created', file=sys.stderr)
 
 		# Test if browser is working
