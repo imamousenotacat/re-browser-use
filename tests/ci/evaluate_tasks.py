@@ -15,7 +15,7 @@ import warnings
 
 import aiofiles
 import yaml
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 
 from browser_use.agent.service import Agent
@@ -60,8 +60,8 @@ async def run_single_task(task_file):
 		print(f'[DEBUG] Task: {task[:100]}...', file=sys.stderr)
 		print(f'[DEBUG] Max steps: {max_steps}', file=sys.stderr)
 
-		agent_llm = ChatOpenAI(model='gpt-4.1-mini')
-		judge_llm = ChatOpenAI(model='gpt-4.1-mini')
+		agent_llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash')
+		judge_llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash')
 		print('[DEBUG] LLMs initialized', file=sys.stderr)
 
 		# Each subprocess gets its own profile and session
