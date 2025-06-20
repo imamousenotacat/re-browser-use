@@ -1,10 +1,11 @@
 name: cloud_evals
 
 on:
-  push:
-    branches:
-      - main
-      - 'releases/*'
+# TODO: PVM14 I DON'T KNOW FOR THE MOMENT WHAT THIS DOES ...
+#  push:
+#    branches:
+#      - main
+#      - 'releases/*'
   workflow_dispatch:
     inputs:
       commit_hash:
