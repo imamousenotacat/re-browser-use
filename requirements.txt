@@ -1,0 +1,3 @@
+# re-patchright is for the moment in https://test.pypi.org
+--index-url https://test.pypi.org/simple/
+re-patchright==1.52.6

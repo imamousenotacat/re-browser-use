@@ -107,7 +107,9 @@ jobs:
           enable-cache: true
           activate-environment: true
 
-      - run: uv sync --dev
+      - run: | 
+          uv sync --dev
+          uv pip sync requirements.txt
 
       - name: Detect installed Playwright version
         run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV
@@ -119,15 +121,12 @@ jobs:
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
-      - run: playwright install chromium
+      - run: re-patchright install chromium
 
       - name: Run agent tasks evaluation and capture score
         id: eval
         run: |
-          # I'm a poor man and I was hitting 429 errors when executing in parallel ...
-          python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml >> result.txt
-          python tests/ci/evaluate_tasks.py --task tests/agent_tasks/browser_use_pip.yaml >> result.txt
-          python tests/ci/evaluate_tasks.py --task tests/agent_tasks/amazon_laptop.yaml >> result.txt
+          python tests/ci/evaluate_tasks.py > result.txt
           cat result.txt
           echo "PASSED=$(grep '^PASSED=' result.txt | cut -d= -f2)" >> $GITHUB_ENV
           echo "TOTAL=$(grep '^TOTAL=' result.txt | cut -d= -f2)" >> $GITHUB_ENV

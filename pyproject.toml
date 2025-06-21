@@ -36,7 +36,8 @@ dependencies = [
     "faiss-cpu>=1.11.0",
     "mem0ai>=0.1.106",
     "uuid7>=0.1.0",
-    "patchright>=1.52.5",
+    # re-patchright is for the moment in https://test.pypi.org
+    # "patchright>=1.52.5",
     "aiofiles>=24.1.0",
 ]
 # google-api-core: only used for Google LLM APIs

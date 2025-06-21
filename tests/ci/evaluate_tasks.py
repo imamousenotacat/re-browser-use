@@ -67,7 +67,7 @@ async def run_single_task(task_file):
 		# Each subprocess gets its own profile and session
 		print('[DEBUG] Creating browser session...', file=sys.stderr)
 		playwright = await async_patchright().start()
-		session = await create_browser_session(playwright, headless=False)
+		session = await create_browser_session(playwright, headless=True)
 		print('[DEBUG] Browser session created', file=sys.stderr)
 
 		# => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED TO HAVE A CLEAN AND PURE patchright STEALTH BROWSER IS ALREADY INITIALIZED ....
