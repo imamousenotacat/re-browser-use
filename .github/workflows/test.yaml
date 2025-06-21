@@ -97,6 +97,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANONYMIZED_TELEMETRY: 'false'
+      # Avoiding error 'Configured tool calling method 'function_calling' is not supported by the current LLM'
+      SKIP_LLM_API_KEY_VERIFICATION: 'true'
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
