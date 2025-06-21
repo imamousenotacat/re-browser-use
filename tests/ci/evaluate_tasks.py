@@ -8,7 +8,7 @@ import argparse
 import asyncio
 import glob
 import json
-import logging
+# import logging
 import os
 import sys
 import warnings
@@ -43,11 +43,11 @@ async def run_single_task(task_file):
 	try:
 		print(f'[DEBUG] Starting task: {os.path.basename(task_file)}', file=sys.stderr)
 
-		# Suppress all logging in subprocess to avoid interfering with JSON output
-		logging.getLogger().setLevel(logging.CRITICAL)
-		for logger_name in ['browser_use', 'telemetry', 'message_manager']:
-			logging.getLogger(logger_name).setLevel(logging.CRITICAL)
-		warnings.filterwarnings('ignore')
+		# # Suppress all logging in subprocess to avoid interfering with JSON output
+		# logging.getLogger().setLevel(logging.CRITICAL)
+		# for logger_name in ['browser_use', 'telemetry', 'message_manager']:
+		# 	logging.getLogger(logger_name).setLevel(logging.CRITICAL)
+		# warnings.filterwarnings('ignore')
 
 		print('[DEBUG] Loading task file...', file=sys.stderr)
 		async with aiofiles.open(task_file, 'r') as f:
@@ -70,21 +70,27 @@ async def run_single_task(task_file):
 		session = await create_browser_session(playwright)
 		print('[DEBUG] Browser session created', file=sys.stderr)
 
-		# Test if browser is working
-		try:
-			await session.start()
-			page = await session.create_page()
-			print('[DEBUG] Browser test: page created successfully', file=sys.stderr)
-			await page.goto('https://httpbin.org/get', timeout=10000)
-			print('[DEBUG] Browser test: navigation successful', file=sys.stderr)
-			title = await page.title()
-			print(f"[DEBUG] Browser test: got title '{title}'", file=sys.stderr)
-		except Exception as browser_error:
-			print(f'[DEBUG] Browser test failed: {str(browser_error)}', file=sys.stderr)
-			print(f'[DEBUG] Browser error type: {type(browser_error).__name__}', file=sys.stderr)
+		# Test if browser is working => LET IT FAIL MOTHER FUCKER, BLOODY UNNEEDED ERROR CHECKING ....
+		# try:
+		# 	await session.start()
+		# 	page = await session.create_page()
+		# 	print('[DEBUG] Browser test: page created successfully', file=sys.stderr)
+		# 	await page.goto('https://httpbin.org/get', timeout=10000)
+		# 	print('[DEBUG] Browser test: navigation successful', file=sys.stderr)
+		# 	title = await page.title()
+		# 	print(f"[DEBUG] Browser test: got title '{title}'", file=sys.stderr)
+		# except Exception as browser_error:
+		# 	print(f'[DEBUG] Browser test failed: {str(browser_error)}', file=sys.stderr)
+		# 	print(f'[DEBUG] Browser error type: {type(browser_error).__name__}', file=sys.stderr)
 
 		print('[DEBUG] Starting agent execution...', file=sys.stderr)
-		agent = Agent(task=task, llm=agent_llm, browser_session=session)
+		agent = Agent(task=task, llm=agent_llm, browser_session=session,
+                  # I don't want vision or memory ...
+                  enable_memory=False,
+                  use_vision=False,
+                  # I don't want to waste calls to the LLM ...
+                  tool_calling_method='function_calling'
+                  )
 
 		try:
 			history: AgentHistoryList = await agent.run(max_steps=max_steps)
@@ -172,8 +178,8 @@ async def run_task_subprocess(task_file, semaphore):
 				__file__,
 				'--task',
 				task_file,
-				stdout=asyncio.subprocess.PIPE,
-				stderr=asyncio.subprocess.PIPE,
+				# stdout=asyncio.subprocess.PIPE,
+				# stderr=asyncio.subprocess.PIPE,
 				env=env,
 			)
 			stdout, stderr = await proc.communicate()

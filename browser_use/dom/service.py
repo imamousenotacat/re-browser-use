@@ -72,7 +72,7 @@ class DomService:
 			if frame == self.page.main_frame or iframe_element:
 				# If there is no iframe_element there is no point in doing anything ...
 				# Always evaluating in document.body ...
-				self.logger.info(f"Evaluating in frame=[{frame}] with document.body ...")
+				self.logger.info(f"Evaluating in frame with url=[{frame.url}] using document.body ...")
 				dom_element_node, selector_map = \
 				  await self._build_dom_tree(highlight_elements, focus_element, viewport_expansion, frame, highlight_index)
 				highlight_index += len(selector_map)
@@ -95,7 +95,7 @@ class DomService:
 
 				# Dealing with closed ShadowRoot objects in the Frame ...
 				for closed_shadow_root in closed_shadow_roots:
-					self.logger.info(f"Evaluating in frame=[{frame}] with specific root node {closed_shadow_root.element_handle_to_shadow_root} ...")
+					self.logger.info(f"Evaluating in frame with url=[{frame.url}] using specific root node {closed_shadow_root.element_handle_to_shadow_root} ...")
 					dom_element_node, selector_map = \
 						await self._build_dom_tree(highlight_elements, focus_element, viewport_expansion, frame, highlight_index,
 													closed_shadow_root.element_handle_to_shadow_root)
