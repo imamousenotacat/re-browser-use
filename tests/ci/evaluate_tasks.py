@@ -258,8 +258,14 @@ async def main():
 	# Run all tasks sequentially
 	results = []
 	for i, task_file in enumerate(TASK_FILES):
-		result = await run_task_subprocess(task_file, asyncio.Semaphore(1)) # Use a semaphore of 1 for sequential execution
-		results.append(result)
+		try:
+			# Use a semaphore of 1 for sequential execution, with 120s timeout because this gets stuck from time to time and I removed all the internal timeouts
+			result = await asyncio.wait_for(run_task_subprocess(task_file, asyncio.Semaphore(1)), timeout=120)
+			results.append(result)
+		except asyncio.TimeoutError:
+			results.append(
+				{'file': os.path.basename(task_file), 'success': False, 'explanation': 'Task timed out after 90 seconds'}
+			)
 		if i != len(TASK_FILES) - 1:
 			await asyncio.sleep(30)  # Wait additional 30 seconds between tasks to avoid 429 errors. Again poor mouse case ...
 
