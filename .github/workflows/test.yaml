@@ -74,7 +74,9 @@ jobs:
           enable-cache: true
           activate-environment: true
 
-      - run: uv sync --dev --all-extras
+      - run: |
+          uv sync --dev --all-extras
+          uv pip sync requirements.txt
 
       - name: Detect installed Playwright version
         run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV
