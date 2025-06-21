@@ -1,7 +1,8 @@
 name: docker
 
 on:
-  push:
+  workflow_dispatch:
+#  push: TODO: PVM14 I DON'T GIVE A DAM FOR THE MOMENT ABOUT THE DOCKER IMAGE ...
   release:
     types: [published]
 
