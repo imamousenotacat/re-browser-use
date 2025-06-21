@@ -86,7 +86,7 @@ async def run_single_task(task_file):
 		# 	print(f'[DEBUG] Browser error type: {type(browser_error).__name__}', file=sys.stderr)
 
 		print('[DEBUG] Starting agent execution...', file=sys.stderr)
-		agent = create_agent(task=task, llm=agent_llm, browser_session=session)
+		agent = await create_agent(task=task, llm=agent_llm, browser_session=session)
 
 		try:
 			history: AgentHistoryList = await agent.run(max_steps=max_steps)
