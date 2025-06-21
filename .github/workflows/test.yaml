@@ -76,7 +76,7 @@ jobs:
 
       - run: |
           uv sync --dev --all-extras
-          uv pip sync requirements.txt
+          uv pip install -i https://test.pypi.org/simple/ --no-deps re-patchright
 
       - name: Detect installed Playwright version
         run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV
@@ -89,7 +89,7 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
       #- run: playwright install chrome     # tests that need it can install it manually
-      - run: playwright install chromium
+      - run: re-patchright install chromium
 
       - run: pytest --numprocesses auto -x tests/ci/${{ matrix.test_filename }}.py
 
@@ -111,7 +111,7 @@ jobs:
 
       - run: | 
           uv sync --dev
-          uv pip sync requirements.txt
+          uv pip install -i https://test.pypi.org/simple/ --no-deps re-patchright
 
       - name: Detect installed Playwright version
         run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV
