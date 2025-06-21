@@ -8,7 +8,7 @@ import argparse
 import asyncio
 import glob
 import json
-# import logging
+import logging
 import os
 import sys
 import warnings
@@ -43,11 +43,11 @@ async def run_single_task(task_file):
 	try:
 		print(f'[DEBUG] Starting task: {os.path.basename(task_file)}', file=sys.stderr)
 
-		# # Suppress all logging in subprocess to avoid interfering with JSON output
-		# logging.getLogger().setLevel(logging.CRITICAL)
-		# for logger_name in ['browser_use', 'telemetry', 'message_manager']:
-		# 	logging.getLogger(logger_name).setLevel(logging.CRITICAL)
-		# warnings.filterwarnings('ignore')
+		# Suppress all logging in subprocess to avoid interfering with JSON output
+		logging.getLogger().setLevel(logging.CRITICAL)
+		for logger_name in ['browser_use', 'telemetry', 'message_manager']:
+			logging.getLogger(logger_name).setLevel(logging.CRITICAL)
+		warnings.filterwarnings('ignore')
 
 		print('[DEBUG] Loading task file...', file=sys.stderr)
 		async with aiofiles.open(task_file, 'r') as f:
@@ -174,8 +174,8 @@ async def run_task_subprocess(task_file, semaphore):
 				__file__,
 				'--task',
 				task_file,
-				# stdout=asyncio.subprocess.PIPE,
-				# stderr=asyncio.subprocess.PIPE,
+				stdout=asyncio.subprocess.PIPE,
+				stderr=asyncio.subprocess.PIPE,
 				env=env,
 			)
 			stdout, stderr = await proc.communicate()
