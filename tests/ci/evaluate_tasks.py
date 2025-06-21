@@ -261,7 +261,7 @@ async def main():
 	for i, task_file in enumerate(TASK_FILES):
 		try:
 			# Use a semaphore of 1 for sequential execution, with 120s timeout because this gets stuck from time to time and I removed all the internal timeouts
-			result = await asyncio.wait_for(run_task_subprocess(task_file, asyncio.Semaphore(1)), TIMEOUT=120)
+			result = await asyncio.wait_for(run_task_subprocess(task_file, asyncio.Semaphore(1)), TIMEOUT)
 			results.append(result)
 		except asyncio.TimeoutError:
 			results.append({'file': os.path.basename(task_file), 'success': False, 'explanation': f'Task timed out after {TIMEOUT} seconds'})
