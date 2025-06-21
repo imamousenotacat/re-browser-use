@@ -25,7 +25,7 @@ async def test_nopecha(llm):
     # From https://github.com/browser-use/browser-use/blob/main/docs/customize/real-browser.mdx#method-b-connect-using-existing-playwright-objects
     # Another way of cutting Gordian knots and simplify as much as I can while adapting to the convoluted initialization process ...
 
-    browser_session = await create_browser_session(playwright, False)
+    browser_session = await create_browser_session(playwright, headless=False)
     agent = await create_agent(
       task=(
         # I've had to modify this because I saw this thought:

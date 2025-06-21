@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from browser_use.agent.service import Agent
 from browser_use.agent.views import AgentHistoryList
 from patchright.async_api import async_playwright as async_patchright
-from tests.test_utils import create_browser_session
+from tests.test_utils import create_browser_session, create_agent
 
 # --- CONFIG ---
 MAX_PARALLEL = 10
@@ -67,10 +67,11 @@ async def run_single_task(task_file):
 		# Each subprocess gets its own profile and session
 		print('[DEBUG] Creating browser session...', file=sys.stderr)
 		playwright = await async_patchright().start()
-		session = await create_browser_session(playwright)
+		session = await create_browser_session(playwright, headless=False)
 		print('[DEBUG] Browser session created', file=sys.stderr)
 
-    # => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED IS ALREADY INITIALIZED ....
+		# => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED TO HAVE A CLEAN AND PURE patchright STEALTH BROWSER IS ALREADY INITIALIZED ....
+		#    There will be a call to BrowserSession.start() later in Agent.run but the bulk of the work has already been done here by create_browser_session
 		# Test if browser is working
 		# try:
 		# 	await session.start()
@@ -85,13 +86,7 @@ async def run_single_task(task_file):
 		# 	print(f'[DEBUG] Browser error type: {type(browser_error).__name__}', file=sys.stderr)
 
 		print('[DEBUG] Starting agent execution...', file=sys.stderr)
-		agent = Agent(task=task, llm=agent_llm, browser_session=session,
-                  # I don't want vision or memory ...
-                  enable_memory=False,
-                  use_vision=False,
-                  # I don't want to waste calls to the LLM ...
-                  tool_calling_method='function_calling'
-                  )
+		agent = create_agent(task=task, llm=agent_llm, browser_session=session)
 
 		try:
 			history: AgentHistoryList = await agent.run(max_steps=max_steps)
