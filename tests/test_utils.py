@@ -2,7 +2,7 @@ from browser_use import BrowserProfile, BrowserSession
 from browser_use.agent.service import Agent
 
 
-async def create_browser_session(playwright, headless):
+async def create_browser_session(playwright, headless = True):
   # Creating everything clean and pure outside ...
   chromium = playwright.chromium
   browser = await chromium.launch(headless=headless)

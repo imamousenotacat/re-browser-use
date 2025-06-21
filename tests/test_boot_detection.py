@@ -42,7 +42,7 @@ async def test_nopecha(llm):
     result = history.final_result()
 
     # Printing the final result and assessing it...
-    print(f'FINAL RESULT ARMAS PAL PUEBLO: {result}')
+    print(f'FINAL RESULT: {result}')
     assert history.is_done() and history.is_successful()
 
     page = await browser_session.get_current_page()
