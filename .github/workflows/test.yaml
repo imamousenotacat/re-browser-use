@@ -124,7 +124,10 @@ jobs:
       - name: Run agent tasks evaluation and capture score
         id: eval
         run: |
-          python tests/ci/evaluate_tasks.py > result.txt
+          # I'm a poor man and I was hitting 429 errors when executing in parallel ...
+          python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml >> result.txt
+          python tests/ci/evaluate_tasks.py --task tests/agent_tasks/browser_use_pip.yaml >> result.txt
+          python tests/ci/evaluate_tasks.py --task tests/agent_tasks/amazon_laptop.yaml >> result.txt
           cat result.txt
           echo "PASSED=$(grep '^PASSED=' result.txt | cut -d= -f2)" >> $GITHUB_ENV
           echo "TOTAL=$(grep '^TOTAL=' result.txt | cut -d= -f2)" >> $GITHUB_ENV
