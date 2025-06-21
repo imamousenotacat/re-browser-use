@@ -242,7 +242,7 @@ async def run_task_subprocess(task_file, semaphore):
 
 async def main():
 	"""Run all tasks in parallel using subprocesses"""
-	semaphore = asyncio.Semaphore(MAX_PARALLEL)
+	# semaphore = asyncio.Semaphore(MAX_PARALLEL)
 
 	print(f'Found task files: {TASK_FILES}')
 
@@ -250,9 +250,18 @@ async def main():
 		print('No task files found!')
 		return 0, 0
 
-	# Run all tasks in parallel subprocesses
-	tasks = [run_task_subprocess(task_file, semaphore) for task_file in TASK_FILES]
-	results = await asyncio.gather(*tasks)
+	# TODO: I'm a poor mouse, I can't afford this. I was hitting the 15 RPM limit for gemini-2.0-flash ...
+	# Run all tasks in parallel subprocesses:
+	# tasks = [run_task_subprocess(task_file, semaphore) for task_file in TASK_FILES]
+	# results = await asyncio.gather(*tasks)
+
+	# Run all tasks sequentially
+	results = []
+	for i, task_file in enumerate(TASK_FILES):
+		result = await run_task_subprocess(task_file, asyncio.Semaphore(1)) # Use a semaphore of 1 for sequential execution
+		results.append(result)
+		if i != len(TASK_FILES) - 1:
+			await asyncio.sleep(30)  # Wait additional 30 seconds between tasks to avoid 429 errors. Again poor mouse case ...
 
 	passed = sum(1 for r in results if r['success'])
 	total = len(results)
