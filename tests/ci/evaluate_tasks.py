@@ -70,7 +70,8 @@ async def run_single_task(task_file):
 		session = await create_browser_session(playwright)
 		print('[DEBUG] Browser session created', file=sys.stderr)
 
-		# Test if browser is working => LET IT FAIL MOTHER FUCKER, BLOODY UNNEEDED ERROR CHECKING ....
+    # => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED IS ALREADY INITIALIZED ....
+		# Test if browser is working
 		# try:
 		# 	await session.start()
 		# 	page = await session.create_page()

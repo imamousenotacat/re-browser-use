@@ -1,10 +1,11 @@
 from browser_use import BrowserProfile, BrowserSession
+from browser_use.agent.service import Agent
 
 
-async def create_browser_session(playwright):
+async def create_browser_session(playwright, headless):
   # Creating everything clean and pure outside ...
   chromium = playwright.chromium
-  browser = await chromium.launch(headless=False)
+  browser = await chromium.launch(headless=headless)
   browser_context = await browser.new_context()
   page = await browser_context.new_page()
   browser_profile = BrowserProfile(
@@ -21,3 +22,18 @@ async def create_browser_session(playwright):
   )
 
   return browser_session
+
+
+async def create_agent(task, llm, browser_session):
+  agent = Agent(
+    task=task,
+    llm=llm,
+    browser_session=browser_session,
+    # I don't want vision or memory ...
+    enable_memory=False,
+    use_vision=False,
+    # I don't want to waste calls to the LLM I'm using ChatGoogleGenerativeAI ...
+    tool_calling_method='function_calling'
+  )
+
+  return agent

@@ -8,7 +8,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from browser_use.agent.service import Agent
 from browser_use.agent.views import AgentHistoryList
 from patchright.async_api import async_playwright, expect
-from tests.test_utils import create_browser_session
+from tests.test_utils import create_browser_session, create_agent
 
 
 @pytest.fixture
@@ -25,9 +25,8 @@ async def test_nopecha(llm):
     # From https://github.com/browser-use/browser-use/blob/main/docs/customize/real-browser.mdx#method-b-connect-using-existing-playwright-objects
     # Another way of cutting Gordian knots and simplify as much as I can while adapting to the convoluted initialization process ...
 
-    browser_session = await create_browser_session(playwright)
-
-    agent = Agent(
+    browser_session = await create_browser_session(playwright, False)
+    agent = await create_agent(
       task=(
         # I've had to modify this because I saw this thought:
         # "I was not able to complete the captcha challenge on the cloudflare demo page. I clicked on the wrong element and was redirected to the main demo page.
@@ -37,11 +36,6 @@ async def test_nopecha(llm):
       ),
       llm=llm,
       browser_session=browser_session,
-      # I don't want vision or memory ...
-      enable_memory=False,
-      use_vision=False,
-      # I don't want to waste calls to the LLM ...
-      tool_calling_method='function_calling'
     )
 
     history: AgentHistoryList = await agent.run(5)
