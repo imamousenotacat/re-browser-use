@@ -3,4 +3,4 @@ task: Go to https://2captcha.com/demo/cloudflare-turnstile and solve the captcha
 judge_context:
   - The agent must solve the captcha
   - The hostname returned should be "example.com"
-max_steps: 6
+max_steps: 10
