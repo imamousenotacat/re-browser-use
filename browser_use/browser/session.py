@@ -976,7 +976,7 @@ class BrowserSession(BaseModel):
 
 		# Expose anti-detection scripts => PVM14: In this case 'init_script' seems to have no effect on browser detectability
 		try:
-			pass # await self.browser_context.add_init_script(init_script)
+			await self.browser_context.add_init_script(init_script)
 		except Exception as e:
 			if 'Target page, context or browser has been closed' in str(e):
 				self.logger.warning('⚠️ Browser context was closed before init script could be added')
@@ -1076,7 +1076,7 @@ class BrowserSession(BaseModel):
 
 		# self.logger.info('About to call expose_binding')
 		try:
-			pass #await self.browser_context.expose_binding('_BrowserUseonTabVisibilityChange', _BrowserUseonTabVisibilityChange)
+			await self.browser_context.expose_binding('_BrowserUseonTabVisibilityChange', _BrowserUseonTabVisibilityChange)
 			# self.logger.debug('window._BrowserUseonTabVisibilityChange binding attached via browser_context')
 		except Exception as e:
 			if 'Function "_BrowserUseonTabVisibilityChange" has been already registered' in str(e):
@@ -1116,7 +1116,7 @@ class BrowserSession(BaseModel):
 			// });
 		"""
 		try:
-			pass # await self.browser_context.add_init_script(update_tab_focus_script)
+			await self.browser_context.add_init_script(update_tab_focus_script)
 		except Exception as e:
 			self.logger.warning(f'⚠️ Failed to register init script for tab focus detection: {e}')
 
