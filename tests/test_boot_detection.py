@@ -1,20 +1,14 @@
-"""
-Test boot detection functionality.
-"""
-import os
 import pytest
-from langchain_google_genai import ChatGoogleGenerativeAI
 
-from browser_use.agent.service import Agent
 from browser_use.agent.views import AgentHistoryList
 from patchright.async_api import async_playwright, expect
-from tests.test_utils import create_browser_session, create_agent
+from tests.utils_for_tests import create_browser_session, create_agent, create_llm
 
 
 @pytest.fixture
 def llm():
-	"""Initialize language model for testing"""
-	return ChatGoogleGenerativeAI(model='gemini-2.0-flash')
+  return create_llm()
+
 
 @pytest.mark.asyncio
 async def test_nopecha(llm):

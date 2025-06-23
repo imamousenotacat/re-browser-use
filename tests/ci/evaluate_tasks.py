@@ -15,13 +15,11 @@ import warnings
 
 import aiofiles
 import yaml
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 
-from browser_use.agent.service import Agent
 from browser_use.agent.views import AgentHistoryList
 from patchright.async_api import async_playwright as async_patchright
-from tests.test_utils import create_browser_session, create_agent
+from tests.utils_for_tests import create_browser_session, create_agent, create_llm
 
 # --- CONFIG ---
 MAX_PARALLEL = 10
@@ -60,14 +58,14 @@ async def run_single_task(task_file):
 		print(f'[DEBUG] Task: {task[:100]}...', file=sys.stderr)
 		print(f'[DEBUG] Max steps: {max_steps}', file=sys.stderr)
 
-		agent_llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash')
-		judge_llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash')
+		agent_llm = create_llm()
+		judge_llm = create_llm()
 		print('[DEBUG] LLMs initialized', file=sys.stderr)
 
 		# Each subprocess gets its own profile and session
 		print('[DEBUG] Creating browser session...', file=sys.stderr)
 		playwright = await async_patchright().start()
-		session = await create_browser_session(playwright, headless=True)
+		session = await create_browser_session(playwright, headless=False)
 		print('[DEBUG] Browser session created', file=sys.stderr)
 
 		# => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED TO HAVE A CLEAN AND PURE patchright STEALTH BROWSER IS ALREADY INITIALIZED ....
