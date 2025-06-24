@@ -4,10 +4,14 @@
     focusHighlightIndex: -1,
     viewportExpansion: 0,
     debugMode: false,
+    /* PVM14: Adding these two parameters */
+    initialRootNode: null,
+    highlightIndex: 0
   }
 ) => {
-  const { doHighlightElements, focusHighlightIndex, viewportExpansion, debugMode } = args;
-  let highlightIndex = 0; // Reset highlight index
+  const { doHighlightElements, focusHighlightIndex, viewportExpansion, debugMode, initialRootNode} = args;
+  // let highlightIndex = 0; // Reset highlight index
+  let highlightIndex = args.highlightIndex || 0;
 
   // Add timing stack to handle recursion
   const TIMING_STACK = {
@@ -256,7 +260,15 @@
         container.style.height = "100%";
         container.style.zIndex = "2147483640";
         container.style.backgroundColor = 'transparent';
-        document.body.appendChild(container);
+        /* PVM14: TODO: Playing safe for the moment. Adding the child to document.body
+           doesn't work when that document.body is the host of a ShadowRoot. In that case you need to
+           invoke appendChild directly in the shadowRoot.
+           I hope this doesn't reveal the presence of automation */
+        const rootNode = element?.getRootNode();
+        if (rootNode?.host === document.body)
+          rootNode.appendChild(container);
+        else
+          document.body.appendChild(container);
       }
 
       // Get element client rects
@@ -1215,7 +1227,7 @@
   function buildDomTree(node, parentIframe = null, isParentHighlighted = false) {
     // Fast rejection checks first
     if (!node || node.id === HIGHLIGHT_CONTAINER_ID || 
-        (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.TEXT_NODE)) {
+        (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE)) {
       if (debugMode) PERF_METRICS.nodeMetrics.skippedNodes++;
       return null;
     }
@@ -1232,13 +1244,41 @@
       const nodeData = {
         tagName: 'body',
         attributes: {},
-        xpath: '/body',
+        /* => PVM14: I don't think it's a good idea to treat 'body' in a different way instead of using getXPathTree(node, true),
+              and besides I need it to match with what is generated for the closed shadow roots */
+        // xpath: '/body',
+        xpath: getXPathTree(node, true),
         children: [],
       };
 
       // Process children of body
       for (const child of node.childNodes) {
         const domElement = buildDomTree(child, parentIframe, false); // Body's children have no highlighted parent initially
+        if (domElement) nodeData.children.push(domElement);
+      }
+
+      const id = `${ID.current++}`;
+      DOM_HASH_MAP[id] = nodeData;
+      if (debugMode) PERF_METRICS.nodeMetrics.processedNodes++;
+      return id;
+    }
+
+    /* TODO:PVM14: Special handling when the root node is a ShadowRoot which
+    will be the necessary case when dealing with mode = 'closed' */
+    if (node instanceof ShadowRoot) {
+      // Using values from host ...
+      const host = node?.host;
+      const nodeData = {
+        tagName: host.tagName.toLowerCase(),
+        attributes: {},
+        xpath: getXPathTree(host, true),
+        children: [],
+        shadowRoot: true
+      };
+
+      // Process children of ShadowRoot, nothing special about them
+      for (const child of node.childNodes) {
+        const domElement = buildDomTree(child, parentIframe);
         if (domElement) nodeData.children.push(domElement);
       }
 
@@ -1373,7 +1413,8 @@
         }
       }
       else {
-        // Handle shadow DOM
+        /*+ Handle shadow DOM => PVM14: THIS WILL NEVER BE ABLE TO DEAL WITH CLOSED SHADOW ROOTS BECAUSE OF
+            THE SIMPLE FACT THAT THEY'RE NOT ACCESSIBLE VIA THE shadowRoot PROPERTY. */
         if (node.shadowRoot) {
           nodeData.shadowRoot = true;
           for (const child of node.shadowRoot.childNodes) {
@@ -1419,7 +1460,8 @@
   isTextNodeVisible = measureTime(isTextNodeVisible);
   getEffectiveScroll = measureTime(getEffectiveScroll);
 
-  const rootId = buildDomTree(document.body);
+  const rootNodeToProcess = initialRootNode || document.body;
+  const rootId = buildDomTree(rootNodeToProcess);
 
   // Clear the cache before starting
   DOM_CACHE.clearCache();

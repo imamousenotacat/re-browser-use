@@ -15,13 +15,11 @@ import warnings
 
 import aiofiles
 import yaml
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
-from browser_use.agent.service import Agent
 from browser_use.agent.views import AgentHistoryList
-from browser_use.browser.profile import BrowserProfile
-from browser_use.browser.session import BrowserSession
+from patchright.async_api import async_playwright as async_patchright
+from tests.utils_for_tests import create_browser_session, create_agent, create_llm
 
 # --- CONFIG ---
 MAX_PARALLEL = 10
@@ -31,7 +29,7 @@ TASK_DIR = (
 	else os.path.join(os.path.dirname(__file__), '../agent_tasks')
 )
 TASK_FILES = glob.glob(os.path.join(TASK_DIR, '*.yaml'))
-
+SHOW_LOGS_AND_HEADFUL = os.environ.get('SHOW_LOGS_AND_HEADFUL', False)
 
 class JudgeResponse(BaseModel):
 	success: bool
@@ -43,11 +41,12 @@ async def run_single_task(task_file):
 	try:
 		print(f'[DEBUG] Starting task: {os.path.basename(task_file)}', file=sys.stderr)
 
-		# Suppress all logging in subprocess to avoid interfering with JSON output
-		logging.getLogger().setLevel(logging.CRITICAL)
-		for logger_name in ['browser_use', 'telemetry', 'message_manager']:
-			logging.getLogger(logger_name).setLevel(logging.CRITICAL)
-		warnings.filterwarnings('ignore')
+		if not SHOW_LOGS_AND_HEADFUL:
+			# Suppress all logging in subprocess to avoid interfering with JSON output
+			logging.getLogger().setLevel(logging.CRITICAL)
+			for logger_name in ['browser_use', 'telemetry', 'message_manager']:
+				logging.getLogger(logger_name).setLevel(logging.CRITICAL)
+			warnings.filterwarnings('ignore')
 
 		print('[DEBUG] Loading task file...', file=sys.stderr)
 		async with aiofiles.open(task_file, 'r') as f:
@@ -60,36 +59,33 @@ async def run_single_task(task_file):
 		print(f'[DEBUG] Task: {task[:100]}...', file=sys.stderr)
 		print(f'[DEBUG] Max steps: {max_steps}', file=sys.stderr)
 
-		agent_llm = ChatOpenAI(model='gpt-4.1-mini')
-		judge_llm = ChatOpenAI(model='gpt-4.1-mini')
+		agent_llm = create_llm()
+		judge_llm = create_llm()
 		print('[DEBUG] LLMs initialized', file=sys.stderr)
 
 		# Each subprocess gets its own profile and session
 		print('[DEBUG] Creating browser session...', file=sys.stderr)
-		profile = BrowserProfile(
-			headless=True,
-			user_data_dir=None,
-			chromium_sandbox=False,  # Disable sandbox for CI environment (GitHub Actions)
-			stealth=True,
-		)
-		session = BrowserSession(browser_profile=profile)
+		playwright = await async_patchright().start()
+		session = await create_browser_session(playwright, headless=not SHOW_LOGS_AND_HEADFUL)
 		print('[DEBUG] Browser session created', file=sys.stderr)
 
+		# => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED TO HAVE A CLEAN AND PURE patchright STEALTH BROWSER IS ALREADY INITIALIZED ....
+		#    There will be a call to BrowserSession.start() later in Agent.run but the bulk of the work has already been done here by create_browser_session
 		# Test if browser is working
-		try:
-			await session.start()
-			page = await session.create_new_tab()
-			print('[DEBUG] Browser test: page created successfully', file=sys.stderr)
-			await page.goto('https://httpbin.org/get', timeout=10000)
-			print('[DEBUG] Browser test: navigation successful', file=sys.stderr)
-			title = await page.title()
-			print(f"[DEBUG] Browser test: got title '{title}'", file=sys.stderr)
-		except Exception as browser_error:
-			print(f'[DEBUG] Browser test failed: {str(browser_error)}', file=sys.stderr)
-			print(f'[DEBUG] Browser error type: {type(browser_error).__name__}', file=sys.stderr)
+		# try:
+		# 	await session.start()
+		# 	page = await session.create_new_tab()
+		# 	print('[DEBUG] Browser test: page created successfully', file=sys.stderr)
+		# 	await page.goto('https://httpbin.org/get', timeout=10000)
+		# 	print('[DEBUG] Browser test: navigation successful', file=sys.stderr)
+		# 	title = await page.title()
+		# 	print(f"[DEBUG] Browser test: got title '{title}'", file=sys.stderr)
+		# except Exception as browser_error:
+		# 	print(f'[DEBUG] Browser test failed: {str(browser_error)}', file=sys.stderr)
+		# 	print(f'[DEBUG] Browser error type: {type(browser_error).__name__}', file=sys.stderr)
 
 		print('[DEBUG] Starting agent execution...', file=sys.stderr)
-		agent = Agent(task=task, llm=agent_llm, browser_session=session)
+		agent = await create_agent(task=task, llm=agent_llm, browser_session=session)
 
 		try:
 			history: AgentHistoryList = await agent.run(max_steps=max_steps)
@@ -245,7 +241,7 @@ async def run_task_subprocess(task_file, semaphore):
 
 async def main():
 	"""Run all tasks in parallel using subprocesses"""
-	semaphore = asyncio.Semaphore(MAX_PARALLEL)
+	# semaphore = asyncio.Semaphore(MAX_PARALLEL)
 
 	print(f'Found task files: {TASK_FILES}')
 
@@ -253,9 +249,23 @@ async def main():
 		print('No task files found!')
 		return 0, 0
 
-	# Run all tasks in parallel subprocesses
-	tasks = [run_task_subprocess(task_file, semaphore) for task_file in TASK_FILES]
-	results = await asyncio.gather(*tasks)
+	# TODO: I'm a poor mouse, I can't afford this. I was hitting the 15 RPM limit for gemini-2.0-flash ...
+	# Run all tasks in parallel subprocesses:
+	# tasks = [run_task_subprocess(task_file, semaphore) for task_file in TASK_FILES]
+	# results = await asyncio.gather(*tasks)
+
+	# Run all tasks sequentially
+	results = []
+	TIMEOUT = 120
+	for i, task_file in enumerate(TASK_FILES):
+		try:
+			# Use a semaphore of 1 for sequential execution, with 120s timeout because this gets stuck from time to time and I removed all the internal timeouts
+			result = await asyncio.wait_for(run_task_subprocess(task_file, asyncio.Semaphore(1)), TIMEOUT)
+			results.append(result)
+		except asyncio.TimeoutError:
+			results.append({'file': os.path.basename(task_file), 'success': False, 'explanation': f'Task timed out after {TIMEOUT} seconds'})
+		if i != len(TASK_FILES) - 1:
+			await asyncio.sleep(30)  # Wait additional 30 seconds between tasks to avoid 429 errors. Again: poor mouse case ...
 
 	passed = sum(1 for r in results if r['success'])
 	total = len(results)

@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass
 from functools import wraps
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Self, Optional
 from urllib.parse import urlparse
 
 from browser_use.config import CONFIG
@@ -45,6 +45,11 @@ from browser_use.dom.clickable_element_processor.service import ClickableElement
 from browser_use.dom.service import DomService
 from browser_use.dom.views import DOMElementNode, SelectorMap
 from browser_use.utils import match_url_with_domain_pattern, merge_dicts, time_execution_async, time_execution_sync
+
+# Define types to be Union[Patchright, Playwright]
+from patchright.async_api import Frame as PatchrightFrame
+from playwright.async_api import Frame as PlaywrightFrame
+Frame = PatchrightFrame | PlaywrightFrame
 
 _GLOB_WARNING_SHOWN = False  # used inside _is_url_allowed to avoid spamming the logs with the same warning multiple times
 
@@ -309,8 +314,8 @@ class BrowserSession(BaseModel):
 
 					# resize the existing pages and set up foreground tab detection
 					await self._setup_viewports()
-					await self._setup_current_page_change_listeners()
-					await self._start_context_tracing()
+					await self._setup_current_page_change_listeners() # TODO: PVM14 => In the considered use case, the browser is left to its own devices,
+					await self._start_context_tracing()               #       so this is irrelevant. Probably it will be conditionally removed with a flag
 				except BaseException:
 					self.initialized = False
 					raise
@@ -835,6 +840,13 @@ class BrowserSession(BaseModel):
 							self.browser_context = await self.playwright.chromium.launch_persistent_context(
 								**self.browser_profile.kwargs_for_launch_persistent_context().model_dump(mode='json')
 							)
+							# PVM14: Cutting Gordian knots ... INSTEAD OF MODIFYING THE ORIGINAL CODE THE Playwright/Patchright OBJECTS
+							# WILL BE EXTERNALLY PROVIDED SEE test_boot_detection.py ...
+							# chromium = self.playwright.chromium
+							# browser = await chromium.launch(headless=False)
+							# print(f"browser = {browser} ...")
+							# self.browser_context = await browser.new_context()
+							# print(f"self.browser_context = {self.browser_context} ... ")
 						except Exception as e:
 							# Re-raise if not a timeout
 							if not isinstance(e, asyncio.TimeoutError):
@@ -890,7 +902,7 @@ class BrowserSession(BaseModel):
 					raise
 
 		# Only restore browser from context if it's connected, otherwise keep it None to force new launch
-		browser_from_context = self.browser_context and self.browser_context.browser
+		browser_from_context = self.browser_context and self.browser_context.browser # PVM14 => self?.browser_context?.browser
 		if browser_from_context and browser_from_context.is_connected():
 			self.browser = browser_from_context
 		# ^ self.browser can unfortunately still be None at the end ^
@@ -939,14 +951,14 @@ class BrowserSession(BaseModel):
 			window.isPdfViewer = !!document?.body?.querySelector('body > embed[type="application/pdf"][width="100%"]')
 			if (!window.isPdfViewer) {
 
-				// Permissions
-				const originalQuery = window.navigator.permissions.query;
-				window.navigator.permissions.query = (parameters) => (
-					parameters.name === 'notifications' ?
-						Promise.resolve({ state: Notification.permission }) :
-						originalQuery(parameters)
-				);
-				(() => {
+				// Permissions => PVM14 LET'S LEAVE THIS TO Patchright ...
+				// const originalQuery = window.navigator.permissions.query;
+				// window.navigator.permissions.query = (parameters) => (
+				// 	parameters.name === 'notifications' ?
+				// 		Promise.resolve({ state: Notification.permission }) :
+				// 		originalQuery(parameters)
+				// );
+				(() => { // PVM14 => THE FUNCTION 'getEventListenersForNode' IS USED BY 'BUILDDOMTREE.JS' SO IT IS LEFT UNTOUCHED HERE ...
 					if (window._eventListenerTrackerInitialized) return;
 					window._eventListenerTrackerInitialized = true;
 
@@ -984,7 +996,7 @@ class BrowserSession(BaseModel):
 			}
 		"""
 
-		# Expose anti-detection scripts
+		# Expose anti-detection scripts => PVM14: In this case 'init_script' seems to have no effect on browser detectability
 		try:
 			await self.browser_context.add_init_script(init_script)
 		except Exception as e:
@@ -1217,16 +1229,16 @@ class BrowserSession(BaseModel):
 
 		page = None
 
-		for page in self.browser_context.pages:
+		for page in self.browser_context.pages: # => https://playwright.dev/python/docs/api/class-browsercontext#browser-context-pages
 			# apply viewport size settings to any existing pages
 			if viewport:
 				await page.set_viewport_size(viewport)
 
 			# show browser-use dvd screensaver-style bouncing loading animation on any about:blank pages
-			if page.url == 'about:blank':
-				await self._show_dvd_screensaver_loading_animation(page)
+			# if page.url == 'about:blank':
+			# 	await self._show_dvd_screensaver_loading_animation(page) # PVM14: Pretty mental masturbation I WILL PASS ...
 
-		page = page or (await self.browser_context.new_page())
+		page = page or (await self.browser_context.new_page()) # PVM14 PURE 'page' CREATED HERE IN Gordian CASE
 
 		if (not viewport) and (self.browser_profile.window_size is not None) and not self.browser_profile.headless:
 			# attempt to resize the actual browser window
@@ -1448,14 +1460,14 @@ class BrowserSession(BaseModel):
 
 	@require_initialization
 	@time_execution_async('--remove_highlights')
-	async def remove_highlights(self):
+	async def remove_highlights(self, target_frame: Optional[Frame] = None):
 		"""
 		Removes all highlight overlays and labels created by the highlightElement function.
 		Handles cases where the page might be closed or inaccessible.
 		"""
-		page = await self.get_current_page()
+		target = target_frame if target_frame else await self.get_current_page()
 		try:
-			await page.evaluate(
+			await target.evaluate(
 				"""
                 try {
                     // Remove the highlight container and all its contents
@@ -2355,10 +2367,14 @@ class BrowserSession(BaseModel):
 		try:
 			await self.remove_highlights()
 			dom_service = DomService(page, logger=self.logger)
-			content = await dom_service.get_clickable_elements(
+			# => TODO:pvm14 EXTRACTING THE DOMState OBJECT FROM THE PAGE USING buildDomTree.js
+			#    !!! POTENTIALLY BREAKING CHANGE: USING MY NEW FUNCTION INSTEAD OF THE OLD ONE get_clickable_elements ...
+			#content = await dom_service.get_clickable_elements(
+			content = await dom_service.get_multitarget_clickable_elements(
 				focus_element=focus_element,
 				viewport_expansion=self.browser_profile.viewport_expansion,
 				highlight_elements=self.browser_profile.highlight_elements,
+				remove_highlights=self.remove_highlights,
 			)
 
 			tabs_info = await self.get_tabs_info()

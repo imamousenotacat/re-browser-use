@@ -240,8 +240,8 @@ class Agent(Generic[Context]):
 		self._set_model_names()
 
 		# Verify we can connect to the LLM and setup the tool calling method
-		self._verify_and_setup_llm()
-
+		self._verify_and_setup_llm()  # => PVM14 THIS CODE IS GENERATING SPURIOUS AN USELESS CALLS TO THE LLM. TO AVOID THEM
+		                              #    I SET SKIP_LLM_API_KEY_VERIFICATION=true IN .env FILE AND tool_calling_method='function_calling' FOR THE Agent
 		# Handle users trying to use use_vision=True with DeepSeek models
 		if 'deepseek' in self.model_name.lower():
 			self.logger.warning('⚠️ DeepSeek models do not support use_vision=True yet. Setting use_vision=False for now...')
@@ -267,7 +267,7 @@ class Agent(Generic[Context]):
 			f'{" +rawtools" if self.tool_calling_method == "raw" else ""}'
 			f'{" +vision" if self.settings.use_vision else ""}'
 			f'{" +memory" if self.enable_memory else ""}'
-			f' extraction_model={getattr(self.settings.page_extraction_llm, "model_name", None)}'
+			f' extraction_model={getattr(self.settings.page_extraction_llm, "model_name", None) or getattr(self.settings.page_extraction_llm, "model", None)}'
 			f'{f" planner_model={self.planner_model_name}" if self.planner_model_name else ""}'
 			f'{" +reasoning" if self.settings.is_planner_reasoning else ""}'
 			f'{" +vision" if self.settings.use_vision_for_planner else ""} '
