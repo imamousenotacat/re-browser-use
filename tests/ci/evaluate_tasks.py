@@ -196,12 +196,8 @@ async def run_task_subprocess(task_file, semaphore):
 			proc_name = os.path.basename(task_file)
 
 			# Create tasks to read stdout and stderr concurrently to avoid deadlocks
-			stdout_task = asyncio.create_task(
-				_stream_reader(proc.stdout, stdout_buffer, sys.stdout, f"[{proc_name}][OUT]")
-			)
-			stderr_task = asyncio.create_task(
-				_stream_reader(proc.stderr, stderr_buffer, sys.stderr, f"[{proc_name}][ERR]")
-			)
+			stdout_task = asyncio.create_task(_stream_reader(proc.stdout, stdout_buffer, sys.stdout))
+			stderr_task = asyncio.create_task(_stream_reader(proc.stderr, stderr_buffer, sys.stderr))
 
 			# Wait for the process to finish and the readers to drain the pipes
 			await proc.wait()
