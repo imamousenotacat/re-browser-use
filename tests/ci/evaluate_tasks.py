@@ -31,6 +31,16 @@ TASK_DIR = (
 TASK_FILES = glob.glob(os.path.join(TASK_DIR, '*.yaml'))
 SHOW_LOGS_AND_HEADFUL = os.environ.get('SHOW_LOGS_AND_HEADFUL', False)
 
+async def _stream_reader(stream, buffer, print_stream, prefix):
+	"""Reads from a stream, buffers the output, and prints it in real-time."""
+	while True:
+		line = await stream.readline()
+		if not line:
+			break
+		buffer.append(line)
+		print(f"{prefix} {line.decode(errors='ignore').strip()}", file=print_stream, flush=True)
+
+
 class JudgeResponse(BaseModel):
 	success: bool
 	explanation: str
@@ -177,7 +187,24 @@ async def run_task_subprocess(task_file, semaphore):
 				stderr=asyncio.subprocess.PIPE,
 				env=env,
 			)
-			stdout, stderr = await proc.communicate()
+      # THIS WAS BLINDING ME AND I HAVE PROBLEMS WITH THE GitHub ACTIONS EXECUTION ...
+      # stdout, stderr = await proc.communicate()
+			stdout_buffer = []
+			stderr_buffer = []
+			proc_name = os.path.basename(task_file)
+
+			# Create tasks to read stdout and stderr concurrently to avoid deadlocks
+			stdout_task = asyncio.create_task(
+				_stream_reader(proc.stdout, stdout_buffer, sys.stdout, f"[{proc_name}][OUT]")
+			)
+			stderr_task = asyncio.create_task(
+				_stream_reader(proc.stderr, stderr_buffer, sys.stderr, f"[{proc_name}][ERR]")
+			)
+
+			# Wait for the process to finish and the readers to drain the pipes
+			await proc.wait()
+			await asyncio.gather(stdout_task, stderr_task)
+			stdout, stderr = b"".join(stdout_buffer), b"".join(stderr_buffer)
 
 			if proc.returncode == 0:
 				try:
