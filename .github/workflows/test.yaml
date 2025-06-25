@@ -127,7 +127,7 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
       # Added --with-deps to be able to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
-      - run: re-patchright install chromium --with-deps
+      - run: re-patchright install chromium # --with-deps flag was making the execution almost three minutes longer in github
 
       - name: Run agent tasks evaluation and capture score
         id: eval
