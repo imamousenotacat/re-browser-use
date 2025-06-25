@@ -126,13 +126,17 @@ jobs:
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
-      - run: re-patchright install chromium
+      # Added --with-deps to be able to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
+      - run: re-patchright install chromium --with-deps
 
       - name: Run agent tasks evaluation and capture score
         id: eval
+
         run: |
-          python tests/ci/evaluate_tasks.py > result.txt
-          cat result.txt
+          # It's a very sad thing not seeing what is happening ...
+          # python tests/ci/evaluate_tasks.py > result.txt
+          python -u tests/ci/evaluate_tasks.py 2>&1 | tee result.txt
+          # cat result.txt
           echo "PASSED=$(grep '^PASSED=' result.txt | cut -d= -f2)" >> $GITHUB_ENV
           echo "TOTAL=$(grep '^TOTAL=' result.txt | cut -d= -f2)" >> $GITHUB_ENV
           echo "DETAILED_RESULTS=$(grep '^DETAILED_RESULTS=' result.txt | cut -d= -f2-)" >> $GITHUB_ENV

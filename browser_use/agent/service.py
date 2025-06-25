@@ -1181,12 +1181,15 @@ class Agent(Generic[Context]):
 	@time_execution_async('--get_next_action')
 	async def get_next_action(self, input_messages: list[BaseMessage]) -> AgentOutput:
 		"""Get next action from LLM based on current state"""
+		# Timeout for LLM API calls in seconds: Gemini is killing me and getting stuck forever ...
+		LLM_TIMEOUT_SECONDS = 20  
+
 		input_messages = self._convert_input_messages(input_messages)
 
 		if self.tool_calling_method == 'raw':
 			self._log_llm_call_info(input_messages, self.tool_calling_method)
 			try:
-				output = await self.llm.ainvoke(input_messages)
+				output = await asyncio.wait_for(self.llm.ainvoke(input_messages), timeout=LLM_TIMEOUT_SECONDS)
 				response = {'raw': output, 'parsed': None}
 			except Exception as e:
 				self.logger.error(f'Failed to invoke model: {str(e)}')
@@ -1207,7 +1210,7 @@ class Agent(Generic[Context]):
 		elif self.tool_calling_method is None:
 			structured_llm = self.llm.with_structured_output(self.AgentOutput, include_raw=True)
 			try:
-				response: dict[str, Any] = await structured_llm.ainvoke(input_messages)  # type: ignore
+				response: dict[str, Any] = await asyncio.wait_for(structured_llm.ainvoke(input_messages), timeout=LLM_TIMEOUT_SECONDS) # type: ignore  
 				parsed: AgentOutput | None = response['parsed']
 
 			except Exception as e:
@@ -1219,7 +1222,7 @@ class Agent(Generic[Context]):
 				structured_llm = self.llm.with_structured_output(
 					self.AgentOutput, include_raw=True, method=self.tool_calling_method
 				)
-				response: dict[str, Any] = await structured_llm.ainvoke(input_messages)  # type: ignore
+				response: dict[str, Any] = await asyncio.wait_for(structured_llm.ainvoke(input_messages), timeout=LLM_TIMEOUT_SECONDS)  # type: ignore
 			except Exception as e:
 				response, raw = handle_llm_error(e)
 
