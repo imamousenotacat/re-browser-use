@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 import warnings
+import datetime
 
 import aiofiles
 import yaml
@@ -31,14 +32,15 @@ TASK_DIR = (
 TASK_FILES = glob.glob(os.path.join(TASK_DIR, '*.yaml'))
 SHOW_LOGS_AND_HEADFUL = os.environ.get('SHOW_LOGS_AND_HEADFUL', False)
 
-async def _stream_reader(stream, buffer, print_stream, prefix):
+async def _stream_reader(stream, buffer, print_stream):
 	"""Reads from a stream, buffers the output, and prints it in real-time."""
 	while True:
 		line = await stream.readline()
 		if not line:
 			break
 		buffer.append(line)
-		print(f"{prefix} {line.decode(errors='ignore').strip()}", file=print_stream, flush=True)
+		timestamp = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-4]
+		print(f"[{timestamp}] {line.decode(errors='ignore').strip()}", file=print_stream, flush=True)
 
 
 class JudgeResponse(BaseModel):
