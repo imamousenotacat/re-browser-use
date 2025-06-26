@@ -32,7 +32,8 @@ async def test_nopecha(llm):
       browser_session=browser_session,
     )
 
-    history: AgentHistoryList = await agent.run(5)
+    # Usually 5 steps are enough, but I think there was a bug creating problems with the evaluation of the last action
+    history: AgentHistoryList = await agent.run(10)
     result = history.final_result()
 
     # Printing the final result and assessing it...
