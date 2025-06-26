@@ -89,8 +89,11 @@ jobs:
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
-      #- run: playwright install chrome     # tests that need it can install it manually
-      - run: re-patchright install chromium
+      # Add --with-deps to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
+      # Right now the browsers used by both packages are different ...
+      - run: |
+          playwright install chrome
+          re-patchright install chromium
 
       - run: pytest --numprocesses auto -x tests/ci/${{ matrix.test_filename }}.py
 
@@ -126,8 +129,11 @@ jobs:
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
-      # Added --with-deps to be able to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
-      - run: re-patchright install chromium # --with-deps flag was making the execution almost three minutes longer in github
+      # Add --with-deps to be able to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
+      # Right now the browsers used by both packages are different ...
+      - run: |
+          playwright install chrome
+          re-patchright install chromium
 
       - name: Run agent tasks evaluation and capture score
         id: eval
