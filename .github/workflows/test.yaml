@@ -92,7 +92,7 @@ jobs:
       # Add --with-deps to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
       # Right now the browsers used by both packages are different ...
       - run: |
-          playwright install chrome
+          playwright install chromium
           re-patchright install chromium
 
       - run: pytest --numprocesses auto -x tests/ci/${{ matrix.test_filename }}.py
@@ -132,7 +132,7 @@ jobs:
       # Add --with-deps to be able to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
       # Right now the browsers used by both packages are different ...
       - run: |
-          playwright install chrome
+          playwright install chromium
           re-patchright install chromium
 
       - name: Run agent tasks evaluation and capture score
