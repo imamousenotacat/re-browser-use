@@ -103,6 +103,7 @@ jobs:
       ANONYMIZED_TELEMETRY: 'false'
       # Avoiding error 'Configured tool calling method 'function_calling' is not supported by the current LLM'
       SKIP_LLM_API_KEY_VERIFICATION: 'true'
+      HEADLESS_EVALUATION: 'false'
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -141,7 +142,7 @@ jobs:
         run: |
           # It's a very sad thing not seeing what is happening ...
           # python tests/ci/evaluate_tasks.py > result.txt
-          python -u tests/ci/evaluate_tasks.py 2>&1 | tee result.txt
+          xvfb-run python -u tests/ci/evaluate_tasks.py 2>&1 | tee result.txt
           # cat result.txt
           echo "PASSED=$(grep '^PASSED=' result.txt | cut -d= -f2)" >> $GITHUB_ENV
           echo "TOTAL=$(grep '^TOTAL=' result.txt | cut -d= -f2)" >> $GITHUB_ENV
