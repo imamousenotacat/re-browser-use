@@ -75,8 +75,9 @@ def base_url(http_server):
 	"""Return the base URL for the test HTTP server."""
 	return f'http://{http_server.host}:{http_server.port}'
 
-
-@pytest.fixture(scope='module')
+# When tests work in isolation pytest -v -rA -s tests\ci\test_controller.py but fail when executed together, as was happening from time to time
+# with this module, it's usually a concurrency problem ...
+@pytest.fixture(scope='function')
 async def browser_session():
 	"""Create and provide a Browser instance with security disabled."""
 	browser_session = BrowserSession(

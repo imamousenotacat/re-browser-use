@@ -247,7 +247,8 @@ class Agent(Generic[Context]):
 		self.initial_actions = self._convert_initial_actions(initial_actions) if initial_actions else None
 
 		# Verify we can connect to the LLM and setup the tool calling method
-		self._verify_and_setup_llm()
+		self._verify_and_setup_llm()  # => PVM14 THIS CODE IS GENERATING SPURIOUS AN USELESS CALLS TO THE LLM. TO AVOID THEM
+		                              #    I SET SKIP_LLM_API_KEY_VERIFICATION=true IN .env FILE AND tool_calling_method='function_calling' FOR THE Agent
 
 		# TODO: move this logic to the LLMs
 		# Handle users trying to use use_vision=True with DeepSeek models

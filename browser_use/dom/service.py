@@ -1,11 +1,15 @@
+import asyncio
 import logging
 from importlib import resources
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Callable, Awaitable
 from urllib.parse import urlparse
+
+from browser_use.dom.dom_utils import DomUtils, FramesDescriptorDict
 
 if TYPE_CHECKING:
 	from browser_use.browser.types import Page
 
+from playwright.async_api import Frame, JSHandle
 
 from browser_use.dom.views import (
 	DOMBaseNode,
@@ -44,6 +48,82 @@ class DomService:
 		element_tree, selector_map = await self._build_dom_tree(highlight_elements, focus_element, viewport_expansion)
 		return DOMState(element_tree=element_tree, selector_map=selector_map)
 
+	@time_execution_async('--get_multitarget_clickable_elements')
+	async def get_multitarget_clickable_elements(
+		self,
+		highlight_elements: bool = True,
+		focus_element: int = -1,
+		viewport_expansion: int = 0,
+		remove_highlights: Optional[Callable[..., Awaitable[None]]] = None,
+	) -> DOMState:
+		dom_utils = DomUtils()
+
+		frames_descriptor_dict:FramesDescriptorDict = await dom_utils.build_frames_descriptor_dict(self.page)
+
+		if remove_highlights:
+			tasks = [] # Trying to minimize the ugly visual effect by parallelizing the execution ...
+			for frame in frames_descriptor_dict.keys():
+				tasks.append(remove_highlights(frame))
+			await asyncio.gather(*tasks)
+
+		final_dom_element_node, dom_element_node, final_selector_map, highlight_index = None, None, {}, 0
+		for frame, closed_shadow_roots in frames_descriptor_dict.items():
+			# look in 'final_dom_element_node' for the point to link this new 'document.body' ...
+			iframe_element = await DomUtils.get_insertion_point_for_body(final_dom_element_node, frame)
+			if frame == self.page.main_frame or iframe_element:
+				# If there is no iframe_element there is no point in doing anything ...
+				# Always evaluating in document.body ...
+				self.logger.info(f"Evaluating in frame with url=[{frame.url}] using document.body ...")
+				dom_element_node, selector_map = \
+				  await self._build_dom_tree(highlight_elements, focus_element, viewport_expansion, frame, highlight_index)
+				highlight_index += len(selector_map)
+				final_selector_map.update(selector_map)
+				if frame == self.page.main_frame:
+					final_dom_element_node = dom_element_node
+				else:
+					assert final_dom_element_node is not None
+					if iframe_element:
+						# Verify if iframe_element has a 'html' child, which in turn has a 'body' child.
+						body = await DomUtils.traverse_and_filter(iframe_element,
+                                                      lambda node: asyncio.sleep(0, result=(node.xpath == "html/body")),
+                                                      just_first_found=True)
+					if body:
+						DomUtils.copy_children(dom_element_node, body[0])
+					else:
+						# We link here the document.body itself ... it's more elegant ;-|
+						dom_element_node.parent = iframe_element
+						iframe_element.children.append(dom_element_node)
+
+				# Dealing with closed ShadowRoot objects in the Frame ...
+				for closed_shadow_root in closed_shadow_roots:
+					self.logger.info(f"Evaluating in frame with url=[{frame.url}] using specific root node {closed_shadow_root.element_handle_to_shadow_root} ...")
+					dom_element_node, selector_map = \
+						await self._build_dom_tree(highlight_elements, focus_element, viewport_expansion, frame, highlight_index,
+													closed_shadow_root.element_handle_to_shadow_root)
+					highlight_index += len(selector_map)
+					final_selector_map.update(selector_map)
+					# Look in 'final_dom_element_node' for the point to link the 'dom_element_node' corresponding to the closed ShadowRoot
+					# HERE THE MATCHING IS EASY: LOOK FOR A MATCHING "xpath" IN 'final_dom_element_node' AND ADD TO THE FOUND
+					# DOMElementNode THE CHILDREN OF 'dom_element_node'
+					host_elements: list[DOMElementNode] = \
+						await DomUtils.traverse_and_filter(final_dom_element_node,
+														lambda node, target_xpath: asyncio.sleep(0, result=(node.xpath == target_xpath)),
+														# This is passed as an argument to the lambda (not needed it's here as an example)
+														dom_element_node.xpath)
+					if host_elements and len(host_elements) > 1:
+						# If there is more than one matching xpath the Frame must match also ...
+						host_elements = [host for host in host_elements if DomUtils.is_matching_iframe(frame, await DomUtils.find_parent_iframe(host))]
+					assert len(host_elements) == 1, (
+							f"There should be one and only one element matching the xpath [{dom_element_node.xpath}] for the closed shadow root...")
+					host = host_elements[0]
+					host.shadow_root = True
+					DomUtils.copy_children(dom_element_node, host)
+					await closed_shadow_root.element_handle_to_shadow_root.dispose()
+
+		# After connecting the different element trees we return the root one ...
+		assert final_dom_element_node is not None
+		return DOMState(element_tree=final_dom_element_node, selector_map=final_selector_map)
+
 	@time_execution_async('--get_cross_origin_iframes')
 	async def get_cross_origin_iframes(self) -> list[str]:
 		# invisible cross-origin iframes are used for ads and tracking, dont open those
@@ -68,6 +148,9 @@ class DomService:
 		highlight_elements: bool,
 		focus_element: int,
 		viewport_expansion: int,
+		target_frame: Optional['Frame'] = None,
+		highlight_index: int = 0,
+		initial_root_node: Optional['JSHandle'] = None
 	) -> tuple[DOMElementNode, SelectorMap]:
 		if await self.page.evaluate('1+1') != 2:
 			raise ValueError('The page cannot evaluate javascript code properly')
@@ -95,10 +178,15 @@ class DomService:
 			'focusHighlightIndex': focus_element,
 			'viewportExpansion': viewport_expansion,
 			'debugMode': debug_mode,
+			'initialRootNode': initial_root_node,
+			'highlightIndex': highlight_index
 		}
 
 		try:
-			eval_page: dict = await self.page.evaluate(self.js_code, args)
+			if target_frame:
+				eval_page: dict = await target_frame.evaluate(self.js_code, args)
+			else:
+				eval_page: dict = await self.page.evaluate(self.js_code, args)
 		except Exception as e:
 			self.logger.error('Error evaluating JavaScript: %s', e)
 			raise
@@ -128,7 +216,7 @@ class DomService:
 				# processed_nodes,
 			)
 
-		return await self._construct_dom_tree(eval_page)
+		return await self._construct_dom_tree(eval_page) # => TODO:pvm14 import json; print(json.dumps(eval_page, indent=2))
 
 	@time_execution_async('--construct_dom_tree')
 	async def _construct_dom_tree(
