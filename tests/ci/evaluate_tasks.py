@@ -1,5 +1,5 @@
 """
-Runs all agent tasks in parallel (up to 10 at a time) using separate subprocesses.
+Runs all agent tasks in parallel SEQUENTIALLY I'M A POOR MOUSE (up to 10 at a time) using separate subprocesses.
 Each task gets its own Python process, preventing browser session interference.
 Does not fail on partial failures (always exits 0).
 """
@@ -8,20 +8,18 @@ import argparse
 import asyncio
 import glob
 import json
-import logging
 import os
 import sys
-import warnings
+
+import datetime
 
 import aiofiles
 import yaml
 from pydantic import BaseModel
 
-from browser_use.agent.service import Agent
 from browser_use.agent.views import AgentHistoryList
-from browser_use.browser.profile import BrowserProfile
-from browser_use.browser.session import BrowserSession
-from browser_use.llm import ChatOpenAI
+from patchright.async_api import async_playwright as async_patchright
+from tests.utils_for_tests import create_browser_session, create_agent, create_llm
 from browser_use.llm.messages import UserMessage
 
 # --- CONFIG ---
@@ -32,6 +30,17 @@ TASK_DIR = (
 	else os.path.join(os.path.dirname(__file__), '../agent_tasks')
 )
 TASK_FILES = glob.glob(os.path.join(TASK_DIR, '*.yaml'))
+HEADLESS_EVALUATION = os.environ.get('HEADLESS_EVALUATION', 'True').lower() == 'true'
+
+async def _stream_reader(stream, buffer, print_stream):
+	"""Reads from a stream, buffers the output, and prints it in real-time."""
+	while True:
+		line = await stream.readline()
+		if not line:
+			break
+		buffer.append(line)
+		timestamp = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-4]
+		print(f"[{timestamp}] {line.decode(errors='ignore').strip()}", file=print_stream, flush=True)
 
 
 class JudgeResponse(BaseModel):
@@ -44,11 +53,13 @@ async def run_single_task(task_file):
 	try:
 		print(f'[DEBUG] Starting task: {os.path.basename(task_file)}', file=sys.stderr)
 
-		# Suppress all logging in subprocess to avoid interfering with JSON output
-		logging.getLogger().setLevel(logging.CRITICAL)
-		for logger_name in ['browser_use', 'telemetry', 'message_manager']:
-			logging.getLogger(logger_name).setLevel(logging.CRITICAL)
-		warnings.filterwarnings('ignore')
+		# Being blind it's a terrible thing :-( ...
+		# if not SHOW_LOGS_AND_HEADFUL:
+		# 	# Suppress all logging in subprocess to avoid interfering with JSON output
+		# 	logging.getLogger().setLevel(logging.CRITICAL)
+		# 	for logger_name in ['browser_use', 'telemetry', 'message_manager']:
+		# 		logging.getLogger(logger_name).setLevel(logging.CRITICAL)
+		# 	warnings.filterwarnings('ignore')
 
 		print('[DEBUG] Loading task file...', file=sys.stderr)
 		async with aiofiles.open(task_file, 'r') as f:
@@ -61,39 +72,33 @@ async def run_single_task(task_file):
 		print(f'[DEBUG] Task: {task[:100]}...', file=sys.stderr)
 		print(f'[DEBUG] Max steps: {max_steps}', file=sys.stderr)
 
-		agent_llm = ChatOpenAI(model='gpt-4.1-mini')
-		judge_llm = ChatOpenAI(model='gpt-4.1-mini')
+		agent_llm = create_llm()
+		judge_llm = create_llm()
 		print('[DEBUG] LLMs initialized', file=sys.stderr)
 
 		# Each subprocess gets its own profile and session
 		print('[DEBUG] Creating browser session...', file=sys.stderr)
-		profile = BrowserProfile(
-			headless=True,
-			user_data_dir=None,
-			chromium_sandbox=False,  # Disable sandbox for CI environment (GitHub Actions)
-			stealth=True,
-		)
-		session = BrowserSession(browser_profile=profile)
+		playwright = await async_patchright().start()
+		session = await create_browser_session(playwright, headless=HEADLESS_EVALUATION)
 		print('[DEBUG] Browser session created', file=sys.stderr)
 
+		# => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED TO HAVE A CLEAN AND PURE patchright STEALTH BROWSER IS ALREADY INITIALIZED ....
+		#    There will be a call to BrowserSession.start() later in Agent.run but the bulk of the work has already been done here by create_browser_session
 		# Test if browser is working
-		try:
-			await session.start()
-			page = await session.create_new_tab()
-			print('[DEBUG] Browser test: page created successfully', file=sys.stderr)
-			await page.goto('https://httpbin.org/get', timeout=10000)
-			print('[DEBUG] Browser test: navigation successful', file=sys.stderr)
-			title = await page.title()
-			print(f"[DEBUG] Browser test: got title '{title}'", file=sys.stderr)
-		except Exception as browser_error:
-			print(f'[DEBUG] Browser test failed: {str(browser_error)}', file=sys.stderr)
-			print(
-				f'[DEBUG] Browser error type: {type(browser_error).__name__}',
-				file=sys.stderr,
-			)
+		# try:
+		# 	await session.start()
+		# 	page = await session.create_new_tab()
+		# 	print('[DEBUG] Browser test: page created successfully', file=sys.stderr)
+		# 	await page.goto('https://httpbin.org/get', timeout=10000)
+		# 	print('[DEBUG] Browser test: navigation successful', file=sys.stderr)
+		# 	title = await page.title()
+		# 	print(f"[DEBUG] Browser test: got title '{title}'", file=sys.stderr)
+		# except Exception as browser_error:
+		# 	print(f'[DEBUG] Browser test failed: {str(browser_error)}', file=sys.stderr)
+		# 	print(f'[DEBUG] Browser error type: {type(browser_error).__name__}', file=sys.stderr)
 
 		print('[DEBUG] Starting agent execution...', file=sys.stderr)
-		agent = Agent(task=task, llm=agent_llm, browser_session=session)
+		agent = await create_agent(task=task, llm=agent_llm, browser_session=session)
 
 		try:
 			history: AgentHistoryList = await agent.run(max_steps=max_steps)
@@ -191,6 +196,7 @@ async def run_task_subprocess(task_file, semaphore):
 
 			proc = await asyncio.create_subprocess_exec(
 				sys.executable,
+				'-u',
 				__file__,
 				'--task',
 				task_file,
@@ -198,7 +204,20 @@ async def run_task_subprocess(task_file, semaphore):
 				stderr=asyncio.subprocess.PIPE,
 				env=env,
 			)
-			stdout, stderr = await proc.communicate()
+			# THIS WAS BLINDING ME AND I HAVE PROBLEMS WITH THE GitHub ACTIONS EXECUTION ...
+			# stdout, stderr = await proc.communicate()
+			stdout_buffer = []
+			stderr_buffer = []
+			proc_name = os.path.basename(task_file)
+
+			# Create tasks to read stdout and stderr concurrently to avoid deadlocks
+			stdout_task = asyncio.create_task(_stream_reader(proc.stdout, stdout_buffer, sys.stdout))
+			stderr_task = asyncio.create_task(_stream_reader(proc.stderr, stderr_buffer, sys.stderr))
+
+			# Wait for the process to finish and the readers to drain the pipes
+			await proc.wait()
+			await asyncio.gather(stdout_task, stderr_task)
+			stdout, stderr = b"".join(stdout_buffer), b"".join(stderr_buffer)
 
 			if proc.returncode == 0:
 				try:
@@ -207,11 +226,11 @@ async def run_task_subprocess(task_file, semaphore):
 					stderr_text = stderr.decode().strip()
 
 					# Display subprocess debug logs
-					if stderr_text:
-						print(f'[SUBPROCESS {os.path.basename(task_file)}] Debug output:')
-						for line in stderr_text.split('\n'):
-							if line.strip():
-								print(f'  {line}')
+					# if stderr_text:
+					# 	print(f'[SUBPROCESS {os.path.basename(task_file)}] Debug output:')
+					# 	for line in stderr_text.split('\n'):
+					# 		if line.strip():
+					# 			print(f'  {line}')
 
 					# Find the JSON line (should be the last line that starts with {)
 					lines = stdout_text.split('\n')
@@ -262,7 +281,7 @@ async def run_task_subprocess(task_file, semaphore):
 
 async def main():
 	"""Run all tasks in parallel using subprocesses"""
-	semaphore = asyncio.Semaphore(MAX_PARALLEL)
+	# semaphore = asyncio.Semaphore(MAX_PARALLEL)
 
 	print(f'Found task files: {TASK_FILES}')
 
@@ -270,9 +289,25 @@ async def main():
 		print('No task files found!')
 		return 0, 0
 
-	# Run all tasks in parallel subprocesses
-	tasks = [run_task_subprocess(task_file, semaphore) for task_file in TASK_FILES]
-	results = await asyncio.gather(*tasks)
+	# TODO: I'm a poor mouse, I can't afford this. I was hitting the 15 RPM limit for gemini-2.0-flash ...
+	# Run all tasks in parallel subprocesses:
+	# tasks = [run_task_subprocess(task_file, semaphore) for task_file in TASK_FILES]
+	# results = await asyncio.gather(*tasks)
+
+	# Run all tasks sequentially
+	results = []
+	TIMEOUT = 120
+	for i, task_file in enumerate(TASK_FILES):
+		try:
+			# Use a semaphore of 1 for sequential execution, with 120s timeout because this gets stuck from time to time and I removed all the internal timeouts
+			result = await asyncio.wait_for(run_task_subprocess(task_file, asyncio.Semaphore(1)), TIMEOUT)
+			results.append(result)
+		except asyncio.TimeoutError:
+			results.append({'file': os.path.basename(task_file), 'success': False, 'explanation': f'Task timed out after {TIMEOUT} seconds'})
+		if i != len(TASK_FILES) - 1:
+			SECONDS_BETWEEN_EXECUTIONS = 30 # Again: poor mouse case ...
+			print(f'[MAIN]  Waiting additional [{SECONDS_BETWEEN_EXECUTIONS}] seconds between tasks to avoid 429 errors ...')
+			await asyncio.sleep(30)  
 
 	passed = sum(1 for r in results if r['success'])
 	total = len(results)

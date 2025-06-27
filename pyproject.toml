@@ -18,7 +18,8 @@ dependencies = [
     "httpx>=0.28.1",
     "markdownify==1.1.0",
     "mem0ai>=0.1.106",
-    "patchright>=1.52.5",
+    # re-patchright is for the moment in https://test.pypi.org and there is no fucking way to say this crap that is there
+    # "patchright>=1.52.5",
     "playwright>=1.52.0",
     "portalocker>=2.7.0,<3.0.0",
     "posthog>=3.7.0",
