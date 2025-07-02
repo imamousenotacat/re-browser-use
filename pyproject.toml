@@ -1,0 +1,12 @@
+[project]
+name = "re-browser-use"
+version = "0.3.2"
+requires-python = ">=3.11,<4.0"
+
+# Packages needed to execute the patch
+[tool.uv]
+dev-dependencies = [
+    "libcst>=1.8.2",
+    "tomlkit>=0.13.3",
+    "ruamel-yaml>=0.18.14"
+]
