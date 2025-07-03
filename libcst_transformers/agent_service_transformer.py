@@ -78,3 +78,31 @@ class AgentServiceTransformer(cst.CSTTransformer):
         return updated_node.with_changes(expression=new_call)
 
     return updated_node
+
+  # Solving the problem with the tests ValueError: EventBus with name "Agent" already exists. Please choose a unique name or let it auto-generate.
+  def leave_Assign(self, original_node, updated_node):
+    # Match: self.eventbus = EventBus(name='Agent', wal_path=wal_path)
+    pattern = m.Assign(
+      targets=[m.AssignTarget(target=m.Attribute(value=m.Name("self"), attr=m.Name("eventbus")))],
+      value=m.Call(
+        func=m.Name("EventBus"),
+        args=[
+          m.Arg(keyword=m.Name("name"), value=m.SimpleString("'Agent'")),
+          m.Arg(keyword=m.Name("wal_path"), value=m.Name("wal_path")),
+        ]
+      )
+    )
+    if m.matches(updated_node, pattern):
+      # Construct the new name argument
+      new_name_expr = cst.parse_expression("f'Agent_{str(self.id)[-4:]}'")
+      new_args = [
+        cst.Arg(keyword=cst.Name("name"), value=new_name_expr),
+        cst.Arg(keyword=cst.Name("wal_path"), value=cst.Name("wal_path")),
+      ]
+      new_value = cst.Call(
+        func=cst.Name("EventBus"),
+        args=new_args
+      )
+      return updated_node.with_changes(value=new_value)
+
+    return updated_node
