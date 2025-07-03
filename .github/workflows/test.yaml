@@ -1,59 +1,126 @@
-name: Re-Browser Use Tests
+name: test
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write  # Allow writing comments on PRs
+  issues: write         # Allow writing comments on issues
+  statuses: write       # Allow writing statuses on PRs
+  discussions: write
 
 on:
-  # enabling manual trigger
+  push:
+    branches:
+      - main
+      - stable
+      - 'releases/**'
+    tags:
+      - '*'
+  pull_request:
   workflow_dispatch:
-#  push:
-#    branches: [main]
-#  pull_request:
-#    branches: [main]
 
 jobs:
-  apply-patchs:
+  call-apply-patches:
+    uses: ./.github/workflows/apply-patches.yaml
+
+  find_tests:
+    needs:
+      - call-apply-patches
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: browser-use
+    outputs:
+      TEST_FILENAMES: ${{ steps.lsgrep.outputs.TEST_FILENAMES }}
+      # ["test_browser", "test_controller", "test_browser_session", "test_tab_management", ...]
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up UV for build
-        uses: astral-sh/setup-uv@v6
+      - name: Download Patched Browser Use
+        uses: actions/download-artifact@v4
         with:
-          enable-cache: true
-          activate-environment: true
-
-      - name: Install Build Dependencies
+          name: browser-use
+          path: browser-use
+      - id: lsgrep
         run: |
-          uv sync --dev
-
-      - name: Clone Browser Use Version
+          TEST_FILENAMES="$(ls tests/ci/test_*.py | sed 's|^tests/ci/||' | sed 's|\.py$||' | jq -R -s -c 'split("\n")[:-1]')"
+          echo "TEST_FILENAMES=${TEST_FILENAMES}" >> "$GITHUB_OUTPUT"
+          echo "$TEST_FILENAMES"
+        # https://code.dblock.org/2021/09/03/generating-task-matrix-by-looping-over-repo-files-with-github-actions.html
+      - name: Check that at least one test file is found
         run: |
-          git clone https://github.com/browser-use/browser-use --branch 0.3.2
+          if [ -z "${{ steps.lsgrep.outputs.TEST_FILENAMES }}" ]; then
+            echo "Failed to find any test_*.py files in tests/ci/ folder!" > /dev/stderr
+            exit 1
+          fi
 
-      - name: Apply Python Patch
-        run: |
-          cp -r ./src/browser-use/. ./browser-use
-          python patch-re-browser-use.py
-
-      - name: Setup Node v18
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Apply NodeJS Patch
-        run: |
-          npm install
-          node patch-re-browser-use.js
-
-      - name: Upload Patched Browser Use
-        uses: actions/upload-artifact@v4
+  tests:
+    needs: find_tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: browser-use
+    env:
+      IN_DOCKER: 'True'
+      ANONYMIZED_TELEMETRY: 'false'
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+    strategy:
+      fail-fast: false
+      matrix:
+        test_filename: ${{ fromJson(needs.find_tests.outputs.TEST_FILENAMES || '["FAILED_TO_DISCOVER_TESTS"]') }}
+        # autodiscovers all the files in tests/ci/test_*.py
+        # - test_browser
+        # - test_controller
+        # - test_browser_session
+        # - test_tab_management
+        # ... and more
+    name: ${{ matrix.test_filename }}
+    steps:
+      - name: Download Patched Browser Use
+        uses: actions/download-artifact@v4
         with:
           name: browser-use
           path: browser-use
 
+      - name: Check that the previous step managed to find some test files for us to run
+        run: |
+          if [[ "${{ matrix.test_filename }}" == "FAILED_TO_DISCOVER_TESTS" ]]; then
+            echo "Failed get list of test files in tests/ci/test_*.py from find_tests job" > /dev/stderr
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          activate-environment: true
+          # Explicitly setting where to create .venv directory ...
+          working-directory: browser-use
+
+      - run: |
+          uv sync --dev --all-extras
+          uv pip install -i https://test.pypi.org/simple/ --no-deps re-patchright
+
+      - name: Detect installed Playwright version
+        run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV
+
+      - name: Cache playwright binaries
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+
+      # Add --with-deps to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
+      # Right now the browsers used by both packages are different ...
+      - run: |
+          playwright install chromium
+          # re-patchright install chromium
+
+      - run: pytest --numprocesses auto -x tests/ci/${{ matrix.test_filename }}.py
+
   evaluate-tasks:
-    needs: apply-patchs
+    needs: call-apply-patches
     runs-on: ubuntu-latest
     defaults:
       run:
