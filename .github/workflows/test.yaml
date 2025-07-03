@@ -79,8 +79,10 @@ jobs:
         with:
           enable-cache: true
           activate-environment: true
+          # Explicitly setting where to create .venv directory ...
+          working-directory: browser-use
 
-      - run: | 
+      - run: |
           uv sync --dev
           uv pip install -i https://test.pypi.org/simple/ --no-deps re-patchright
 
