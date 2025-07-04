@@ -112,8 +112,8 @@ jobs:
       # TODO: just depend on the other test.yml action for this instead of re-running the tests here
       - run: uv run pytest tests/ci                  # dont push the package to PyPI if the tests fail
 
-      # publish to PyPI
-      - run: uv publish --index testpypi --trusted-publishing always
+      # publish to TestPyPI
+      - run: uv publish --publish-url https://test.pypi.org/legacy/ --trusted-publishing always
 #     TODO: MOU14 I don't know how to do with this yet ,,,
 #      - name: Push to stable branch (if stable release)
 #        if: github.event_name == 'release' && !contains(github.ref_name, 'rc')
