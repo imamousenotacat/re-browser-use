@@ -7,7 +7,7 @@ from libcst_transformers.dom_service_transformer import DomServiceTransformer
 from libcst_transformers.test_controller_transformer import TestControllerTransformer
 from libcst_transformers.evaluate_tasks_transformer import EvaluateTaskTransformer
 from ruamel.yaml import YAML
-from tomlkit import parse, dumps
+from tomlkit import parse, dumps, array, inline_table
 
 FILES_LOCATION_PREFIX = "browser-use/"
 
@@ -66,6 +66,33 @@ for i, dep in enumerate(deps):
 # and remove the required-environments key from [tool.uv]
 if "tool" in doc and "uv" in doc["tool"]:
   doc["tool"]["uv"].pop("required-environments", None)
+
+# Rest of pyproject.toml modifications:
+PROJECT_NAME = "re-browser-use"
+
+doc["project"]["name"] = PROJECT_NAME
+# TODO: MOU14
+doc["project"]["description"] = "Patching Browser Use to make it work with more websites and URLs ..."
+# Changing the author is not so straightforward
+authors_arr = array()
+author = inline_table()
+author["name"] = "Gregor Zunic, patched by github.com/imamousenotacat/"
+authors_arr.append(author)
+authors_arr.multiline(False)
+doc["project"]["authors"] = authors_arr
+doc["project"]["version"] = "0.0.1"
+
+all_deps = doc["project"]["optional-dependencies"]["all"]
+for i, dep in enumerate(all_deps):
+    if dep.startswith("browser-use["):
+        all_deps[i] = dep.replace("browser-use[", f"{PROJECT_NAME}[")
+doc["project"]["optional-dependencies"]["all"] = all_deps
+
+doc["project"]["urls"]["Repository"] = "https://github.com/imamousenotacat/re-browser-use"
+
+scripts = doc["project"]["scripts"]
+scripts["re-browseruse"] = scripts.pop("browseruse")
+scripts[PROJECT_NAME] = scripts.pop("browser-use")
 
 # Step 2: Dump TOML back to string (preserving formatting)
 new_content = dumps(doc)

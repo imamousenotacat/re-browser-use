@@ -45,3 +45,4 @@ uv.lock
 temp
 tmp
 browser-use
+node_modules
