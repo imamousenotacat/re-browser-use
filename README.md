@@ -1,5 +1,5 @@
 <h1 align="center">Enable AI to control your browser 🤖</h1>
 
-Just a test
+This little project was born because I wanted to do things like this:
 
-![bart-ouch](https://github.com/user-attachments/assets/a848aa78-6c41-4fed-9ae5-7895ed72957e)
+![nopecha_cloudflare.py](https://github.com/user-attachments/assets/2f16e2b4-9cef-4b4a-aa2d-e6ebf039cd14)
