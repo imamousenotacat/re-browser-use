@@ -26,6 +26,7 @@ NEW_IMPORTS = [
   "from browser_use.agent.views import AgentHistoryList",
   "from patchright.async_api import async_playwright as async_patchright",
   "from tests.utils_for_tests import create_browser_session, create_agent, create_llm",
+  "from browser_use.llm.messages import UserMessage",
 ]
 
 HEADLESS_VAR = "HEADLESS_EVALUATION = os.environ.get('HEADLESS_EVALUATION', 'True').lower() == 'true'"
