@@ -44,6 +44,6 @@ CLAUDE.local.md
 uv.lock
 temp
 tmp
-browser-use
+/browser-use
 node_modules
 package-lock.json
