@@ -225,3 +225,40 @@ class BrowserSessionTransformer(cst.CSTTransformer):
       return updated_node.with_changes(func=new_func, args=args)
 
     return updated_node
+
+  def leave_ClassDef(self, original_node, updated_node):
+    # Filter for the class named "BrowserSession"
+    if original_node.name.value == "BrowserSession":
+      method_node = cst.parse_statement(method_code)  # This gives you a SimpleStatementLine or FunctionDef
+      # Insert at the end of the class body
+      new_body = list(updated_node.body.body) + [method_node]
+      return updated_node.with_changes(body=updated_node.body.with_changes(body=new_body))
+
+    return updated_node
+
+method_code ='''
+@staticmethod
+async def create_stealth_browser_session(headless=True) -> BrowserSession:
+	# Creating everything clean and pure using patchright and outside the default initialization process  ...
+	patchright = await async_patchright().start()
+
+	# I don't care about what they say about CHROMIUM stealthiness, so far it's been good enough for me ...
+	browser = await patchright.chromium.launch(headless=headless)
+	browser_context = await browser.new_context()
+	page = await browser_context.new_page()
+	browser_profile = BrowserProfile(
+		channel=BrowserChannel.CHROMIUM,
+		stealth=True
+	)
+
+	# Passing all the objects to the session, not to create anything internally ...
+	browser_session = BrowserSession(
+		playwright=patchright,
+		browser=browser,
+		browser_context=browser_context,
+		agent_current_page=page,
+		browser_profile=browser_profile,
+	)
+
+	return browser_session
+'''
