@@ -1,7 +1,7 @@
 import { Project, Node, SyntaxKind, IndentationText } from 'ts-morph';
 import path from 'path';
 const FILES_LOCATION_PREFIX = "browser-use/"
-const filePath = path.resolve(`${FILES_LOCATION_PREFIX}browser_use/dom/buildDomTree.js`);
+const filePath = path.resolve(`${FILES_LOCATION_PREFIX}browser_use/dom/dom_tree/index.js`);
 
 // Initialize a ts-morph project. It's configured to handle JavaScript files.
 const project = new Project({
