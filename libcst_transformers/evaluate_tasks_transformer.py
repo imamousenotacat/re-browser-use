@@ -24,9 +24,9 @@ NEW_IMPORTS = [
   "import yaml",
   "from pydantic import BaseModel",
   "",
-  "from browser_use import BrowserSession"
+  "from browser_use import BrowserSession",
   "from browser_use.agent.views import AgentHistoryList",
-  "from browser_use.agent.service import Agent"
+  "from browser_use.agent.service import Agent",
   "from tests.utils_for_tests import create_llm",
 ]
 

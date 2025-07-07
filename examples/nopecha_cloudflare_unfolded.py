@@ -57,7 +57,7 @@ async def main():
       llm=ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite-preview-06-17"),
       browser_session=browser_session
     )
-    await agent.run()
+    await agent.run(10)
 
 
 asyncio.run(main())

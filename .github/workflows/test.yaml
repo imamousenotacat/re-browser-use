@@ -8,14 +8,14 @@ permissions:
   discussions: write
 
 on:
-  push:
-    branches:
-      - main
-      - stable
-      - 'releases/**'
-    tags:
-      - '*'
-  pull_request:
+#  push:
+#    branches:
+#      - main
+#      - stable
+#      - 'releases/**'
+#    tags:
+#      - '*'
+#  pull_request:
   workflow_dispatch:
 
 jobs:

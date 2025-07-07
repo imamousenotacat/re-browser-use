@@ -58,9 +58,7 @@ old_value = None
 for i, dep in enumerate(deps):
   if dep.value.startswith("patchright"):
     old_value = dep.value
-    # for the moment the dependency is in https://test.pypi.org/ and there is no straightforward way of signaling that from  the toml file, so I remove it
-    # deps[i] = RE_PATCHRIGHT_VERSION
-    del deps[i]
+    deps[i] = RE_PATCHRIGHT_VERSION
     break
 
 # and remove the required-environments key from [tool.uv]
