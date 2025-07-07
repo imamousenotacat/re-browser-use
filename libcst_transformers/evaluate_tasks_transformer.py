@@ -1,6 +1,7 @@
 import libcst as cst
 from libcst import matchers as m
 from libcst.metadata import PositionProvider
+from libcst import RemovalSentinel
 from textwrap import dedent
 
 NEW_DOCSTRING = (
@@ -23,9 +24,10 @@ NEW_IMPORTS = [
   "import yaml",
   "from pydantic import BaseModel",
   "",
+  "from browser_use import BrowserSession"
   "from browser_use.agent.views import AgentHistoryList",
-  "from patchright.async_api import async_playwright as async_patchright",
-  "from tests.utils_for_tests import create_browser_session, create_agent, create_llm",
+  "from browser_use.agent.service import Agent"
+  "from tests.utils_for_tests import create_llm",
 ]
 
 HEADLESS_VAR = "HEADLESS_EVALUATION = os.environ.get('HEADLESS_EVALUATION', 'True').lower() == 'true'"
@@ -235,7 +237,7 @@ for i, task_file in enumerate(TASK_FILES):
     ):
       # Parse the new right side using cst.parse_statement
       new_right = cst.parse_statement(
-        "agent = await create_agent(task=task, llm=agent_llm, browser_session=session)"
+        "agent = await Agent.create_stealth_agent(task=task, llm=agent_llm, browser_session=session)"
       ).body[0].value  # .body returns a list of SimpleStatementLine, .value is the Assign node's value
 
       # Replace the value (right side) of the assignment
@@ -245,7 +247,7 @@ for i, task_file in enumerate(TASK_FILES):
 
   # Replace profile = BrowserProfile(...) with playwright = await async_patchright().start()
   def leave_SimpleStatementLine(self, original_node, updated_node):
-    # Replace the line if it matches profile = BrowserProfile(...)
+    # Remove the line if it matches profile = BrowserProfile(...)
     if (
         len(original_node.body) == 1
         and isinstance(original_node.body[0], cst.Assign)
@@ -253,7 +255,7 @@ for i, task_file in enumerate(TASK_FILES):
         and isinstance(original_node.body[0].value.func, cst.Name)
         and original_node.body[0].value.func.value == "BrowserProfile"
     ):
-      return cst.parse_statement("playwright = await async_patchright().start()")
+      return RemovalSentinel.REMOVE
 
     # Replace the line if it matches session = BrowserSession(browser_profile=profile)
     if (
@@ -263,7 +265,7 @@ for i, task_file in enumerate(TASK_FILES):
         and isinstance(original_node.body[0].value.func, cst.Name)
         and original_node.body[0].value.func.value == "BrowserSession"
     ):
-      return cst.parse_statement("session = await create_browser_session(playwright, headless=HEADLESS_EVALUATION)")
+      return cst.parse_statement("session = await BrowserSession.create_stealth_browser_session(headless=HEADLESS_EVALUATION)")
 
     # Match: semaphore = asyncio.Semaphore(MAX_PARALLEL)
     if m.matches(
@@ -377,7 +379,7 @@ for i, task_file in enumerate(TASK_FILES):
 
   def leave_Try(self, original_node, updated_node):
     # => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED TO HAVE A CLEAN AND PURE patchright STEALTH BROWSER IS ALREADY INITIALIZED ....
-    #    There will be a call to BrowserSession.start() later in Agent.run but the bulk of the work has already been done here by create_browser_session
+    #    There will be a call to BrowserSession.start() later in Agent.run but the bulk of the work has already been done here by create_stealth_browser_session
     if self.function_stack and self.function_stack[-1] == "run_single_task":
       # pos = self.get_metadata(PositionProvider, original_node)
       # func = self.function_stack[-1] if self.function_stack else None
@@ -404,7 +406,7 @@ for i, task_file in enumerate(TASK_FILES):
                   cst.EmptyLine(comment=cst.Comment(
                     "# => UNNEEDED start() CALL AND ERROR CHECKING: ALL THAT IS NEEDED TO HAVE A CLEAN AND PURE patchright STEALTH BROWSER IS ALREADY INITIALIZED ....")),
                   cst.EmptyLine(comment=cst.Comment(
-                    "#    There will be a call to BrowserSession.start() later in Agent.run but the bulk of the work has already been done here by create_browser_session")),
+                    "#    There will be a call to BrowserSession.start() later in Agent.run but the bulk of the work has already been done here by create_stealth_browser_session")),
                   cst.EmptyLine(comment=cst.Comment("#  Test if browser is working")),
                   cst.EmptyLine(comment=cst.Comment("#  try: # (try block removed by transformer)")),
                   cst.EmptyLine(comment=cst.Comment("#    await session.start()")),

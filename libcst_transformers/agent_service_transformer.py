@@ -116,10 +116,11 @@ class AgentServiceTransformer(cst.CSTTransformer):
 
 method_code = '''
 @staticmethod
-async def create_stealth_agent(task, llm, headless=False):
+async def create_stealth_agent(task, llm, browser_session=None, headless=False):
   """I want to bypass entirely the by default initialization method."""
+  if not browser_session:
+    browser_session = await BrowserSession.create_stealth_browser_session(headless=headless)
 
-  browser_session = await BrowserSession.create_stealth_browser_session(headless=headless)
   agent = Agent(
     task=task,
     llm=llm,

@@ -1,21 +1,23 @@
 <h1 align="center">Enable AI to control your browser 🤖</h1>
 
-This little project was born because I wanted to do things like this:
+This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
 
 ![nopecha_cloudflare.py](https://github.com/user-attachments/assets/2f16e2b4-9cef-4b4a-aa2d-e6ebf039cd14)
 
 # Quick start
 
-With pip (Python>=3.11):
+This is how you can see for yourself how it works:
+
+Install the package using pip (Python>=3.11):
 
 ```bash
 pip install re-browser-use
 ```
 
-Install the browser:
+Install the browser. I'm using Chromium; it works OK for me. The project uses a [tweaked version of patchright](https://github.com/imamousenotacat/re-patchright)
 
 ```bash
-playwright install chromium --with-deps --no-shell
+re-patchright install chromium --with-deps --no-shell
 ```
 
 Spin up your agent:
