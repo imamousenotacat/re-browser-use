@@ -99,7 +99,6 @@ jobs:
 
       - run: |
           uv sync --dev --all-extras
-          uv pip install -i https://test.pypi.org/simple/ --no-deps re-patchright
 
       - name: Detect installed Playwright version
         run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV
@@ -151,7 +150,6 @@ jobs:
 
       - run: |
           uv sync --dev
-          uv pip install -i https://test.pypi.org/simple/ --no-deps re-patchright
 
       - name: Detect installed Playwright version
         run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV

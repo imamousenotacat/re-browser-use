@@ -23,7 +23,8 @@ jobs:
   call-apply-patches:
     uses: ./.github/workflows/apply-patches.yaml
 
-# TODO: MOU14 I DON'T GIVE A DAMN ABOUT RELEASES AND TAGS AND ALL THAT CRAP FOR THE MOMENT ...
+# TODO: MOU14 I STILL THINK I DON'T NEED THIS.
+#       I WILL MANUALLY CREATE MY TAGS AND MANUALLY PUBLISH THEM FROM https://github.com/imamousenotacat/re-browser-use/releases  ...
 #  tag_pre_release:
 #    if: github.event_name == 'workflow_dispatch'
 #    runs-on: ubuntu-latest
@@ -32,6 +33,8 @@ jobs:
 #      - name: Create pre-release tag
 #        run: |
 #          git fetch --tags
+#          # It filters for tags that are in the format of semantic versioning (major.minor.patch) and optionally a release candidate suffix (rcN),
+#          # but without any prefix or other suffixes
 #          latest_tag=$(git tag --list --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$' | head -n 1)
 #          if [ -z "$latest_tag" ]; then
 #            echo "Failed to find the latest git tag from list:" > /dev/stderr
@@ -39,6 +42,7 @@ jobs:
 #            exit 1
 #          else
 #            # Bump the tag rc version
+#            # Checks if $latest_tag matches X.Y.Z or X.Y.ZrcN format. If the last tag doesn't contain rc it will print rc0
 #            if [[ "$latest_tag" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(rc([0-9]+))?$ ]]; then
 #              major="${BASH_REMATCH[1]}"
 #              minor="${BASH_REMATCH[2]}"
@@ -91,7 +95,6 @@ jobs:
           working-directory: browser-use
       - run: |
           uv sync
-          uv pip install -i https://test.pypi.org/simple/ --no-deps re-patchright
 
       - run: uv run ruff check --no-fix --select PLE # quick check for syntax errors to avoid waiting time doing the rest of the build
       - run: uv build
@@ -113,7 +116,7 @@ jobs:
       - run: uv run pytest tests/ci                  # dont push the package to PyPI if the tests fail
 
       # publish to TestPyPI
-      - run: uv publish --publish-url https://test.pypi.org/legacy/ --trusted-publishing always
+      - run: uv publish --trusted-publishing always
 #     TODO: MOU14 I don't know how to do with this yet ,,,
 #      - name: Push to stable branch (if stable release)
 #        if: github.event_name == 'release' && !contains(github.ref_name, 'rc')
