@@ -3,7 +3,7 @@ from browser_use import BrowserProfile, BrowserSession
 from browser_use.agent.service import Agent
 from browser_use.browser.profile import BrowserChannel
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+from browser_use.llm import ChatGoogle
 from patchright.async_api import async_playwright
 
 load_dotenv()
@@ -54,7 +54,7 @@ async def main():
         "Go to https://nopecha.com/demo/cloudflare, wait for the verification checkbox to appear, click it once, and wait for 10 seconds."
         "That’s all. If you get redirected, don’t worry."
       ),
-      llm=ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite-preview-06-17"),
+      llm=ChatGoogle(model="gemini-2.5-flash-lite-preview-06-17"),
       browser_session=browser_session
     )
     await agent.run(10)
