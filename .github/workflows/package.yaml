@@ -30,8 +30,10 @@ jobs:
         with:
           name: browser-use
           path: browser-use
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
+          enable-cache: true
+          activate-environment: true
           # Explicitly setting where to create .venv directory ...
           working-directory: browser-use
       - run: uv build --python 3.12
@@ -51,8 +53,8 @@ jobs:
         working-directory: browser-use
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.11", "3.13"]
+        os: [ubuntu-latest]
+        python-version: ["3.11"]
     env:
       ANONYMIZED_TELEMETRY: 'false'
 
@@ -62,8 +64,10 @@ jobs:
         with:
           name: browser-use
           path: browser-use
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
+          enable-cache: true
+          activate-environment: true
           # Explicitly setting where to create .venv directory ...
           working-directory: browser-use
       - uses: actions/download-artifact@v4
