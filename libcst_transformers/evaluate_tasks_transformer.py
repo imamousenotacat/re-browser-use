@@ -28,6 +28,7 @@ NEW_IMPORTS = [
   "from browser_use.agent.views import AgentHistoryList",
   "from browser_use.agent.service import Agent",
   "from tests.utils_for_tests import create_llm",
+  "from browser_use.llm.messages import UserMessage"
 ]
 
 HEADLESS_VAR = "HEADLESS_EVALUATION = os.environ.get('HEADLESS_EVALUATION', 'True').lower() == 'true'"
