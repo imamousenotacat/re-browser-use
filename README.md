@@ -16,6 +16,8 @@ python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.ya
 
 ![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/captcha_cloudflare.yaml.gif)
 
+If it looks slow, it is because I'm using a small and free LLM and an old computer worth $100. 
+
 # Quick start
 
 This is how you can see for yourself how it works:
@@ -92,7 +94,18 @@ python examples\nopecha_cloudflare_unfolded.py
 
 ![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_unfolded.py.KO.gif)
 
-With the current versions of patchright and browser-use it will never work.
+With the current versions of patchright and browser-use, this won't work.
+
+They can't detect the checkbox (well, to be precise, patchright can see it, but it needs a little extra push).
+
+## Why is this project not a PR?
+
+I don't want to ruffle any feathers, but we, humble but rebellious mice 😜, don't like signing CLAs or working for free for someone who, 
+[by their own admission](https://browser-use.com/careers), is here to "dominate". I do this just for fun. 
+
+Besides, the code provided by this patch won't work if it's not accompanied by [re-patchright-python](https://github.com/imamousenotacat/re-patchright-python).
+
+I just wanted to make this work public. If someone finds this useful, they can incorporate it into their own projects. 
 
 ------
 
