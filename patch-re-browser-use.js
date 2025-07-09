@@ -145,7 +145,6 @@ if (node instanceof ShadowRoot) {
 
   const id = \`\${ID.current++}\`;
   DOM_HASH_MAP[id] = nodeData;
-  if (debugMode) PERF_METRICS.nodeMetrics.processedNodes++;
   return id;
 }`);
 
