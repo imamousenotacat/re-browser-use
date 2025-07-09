@@ -81,7 +81,7 @@ pip uninstall re-browser-use -y
 
 pip install patchright
 patchright install chromium --with-deps --no-shell
-uv pip install browser-use==0.4.2 # This is the version I'm working on
+uv pip install browser-use==0.4.4 # This is the version I'm working on
 ```
 
 Now execute the program 
@@ -109,13 +109,6 @@ If you use Browser Use in your research or project, please cite:
   url = {https://github.com/browser-use/browser-use}
 }
 ```
-
- <div align="center"> <img src="https://github.com/user-attachments/assets/06fa3078-8461-4560-b434-445510c1766f" width="400"/> 
- 
-[![Twitter Follow](https://img.shields.io/twitter/follow/Gregor?style=social)](https://x.com/intent/user?screen_name=gregpr07)
-[![Twitter Follow](https://img.shields.io/twitter/follow/Magnus?style=social)](https://x.com/intent/user?screen_name=mamagnus00)
- 
- </div>
 
 <div align="center">
 Made with ❤️ in Zurich and San Francisco
