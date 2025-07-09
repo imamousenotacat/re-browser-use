@@ -6,7 +6,7 @@ This little project was created because I was fed up with getting blocked by Clo
 python examples\nopecha_cloudflare.py
 ```
 
-![nopecha_cloudflare.py](https://github.com/user-attachments/assets/2f16e2b4-9cef-4b4a-aa2d-e6ebf039cd14)
+![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare.py.gif)
 
 or this one:
 
@@ -14,7 +14,7 @@ or this one:
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
 ```
 
-![captcha_cloudflare.yaml](https://github.com/user-attachments/assets/5dd906d5-a453-4fc7-ad26-0ccee1e30bb0)
+![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/captcha_cloudflare.yaml.gif)
 
 # Quick start
 
@@ -90,7 +90,7 @@ Now execute the program
 python examples\nopecha_cloudflare_unfolded.py
 ```
 
-![nopecha_cloudflare_unfolded.py KO](https://github.com/user-attachments/assets/d2367520-38cd-463a-8ed7-a82907517df6)
+![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_unfolded.py.KO.gif)
 
 With the current versions of patchright and browser-use it will never work.
 
