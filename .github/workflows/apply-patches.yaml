@@ -23,11 +23,12 @@ jobs:
 
       - name: Clone Browser Use Version
         run: |
-          git clone https://github.com/browser-use/browser-use --branch 0.4.1
+          git clone https://github.com/browser-use/browser-use --branch 0.4.2
 
       - name: Apply Python Patch
         run: |
           cp -r ./src/browser-use/. ./browser-use
+          cp README.md ./browser-use/README.md
           python patch-re-browser-use.py
 
       - name: Setup Node v18

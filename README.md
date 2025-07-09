@@ -81,7 +81,7 @@ pip uninstall re-browser-use -y
 
 pip install patchright
 patchright install chromium --with-deps --no-shell
-uv pip install browser-use==0.4.1 # This is the version I'm working on
+uv pip install browser-use==0.4.2 # This is the version I'm working on
 ```
 
 Now execute the program 
