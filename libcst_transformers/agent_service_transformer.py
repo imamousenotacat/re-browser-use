@@ -5,8 +5,7 @@ import libcst.matchers as m
 class AgentServiceTransformer(cst.CSTTransformer):
 
   def __init__(self):
-    self.in_get_next_action = False
-    self.in__run_planner = False
+    self.get_model_output = False
     self.class_stack = []
 
   def visit_ClassDef(self, node):
@@ -21,14 +20,12 @@ class AgentServiceTransformer(cst.CSTTransformer):
   def visit_FunctionDef(self, node):
     # LibCST traverses the entire file and look for any function named get_next_action, regardless of class
     # if node.name.value == "get_next_action" and self.current_class == "Agent":
-    if node.name.value == "get_next_action" and self.class_stack and self.class_stack[-1] == "Agent":
-      self.in_get_next_action = True
-    if node.name.value == "_run_planner" and self.class_stack and self.class_stack[-1] == "Agent":
-      self.in__run_planner = True
+    if node.name.value == "get_model_output" and self.class_stack and self.class_stack[-1] == "Agent":
+      self.get_model_output = True
 
   # leave_FunctionDef is called after visiting all children (body, decorators, etc.) of the function definition node
   def leave_FunctionDef(self, original_node, updated_node):
-    if self.in_get_next_action or self.in__run_planner:
+    if self.get_model_output:
       # Insert LLM_TIMEOUT_SECONDS after the docstring (if present)
       # .body (of FunctionDef) is a cst.IndentedBlock (the function’s code block)..body (of IndentedBlock) is a list of statements inside the block.
       # So, .body.body accesses the list of statements inside the function.
@@ -61,8 +58,7 @@ class AgentServiceTransformer(cst.CSTTransformer):
         body.insert(insert_at, assign)
         updated_node = updated_node.with_changes(body=updated_node.body.with_changes(body=body))
 
-    self.in_get_next_action = False
-    self.in__run_planner = False
+    self.get_model_output = False
     return updated_node
 
   # leave_Await is called after visiting the child of an await expression node
