@@ -8,7 +8,7 @@ python examples\nopecha_cloudflare.py
 
 ![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare.py.gif)
 
-or this one:
+Or this one (which I think is a _browser-use_ test that has been longed for and searched for quite a while 😜):
 
 ```bash
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
@@ -83,7 +83,7 @@ pip uninstall re-browser-use -y
 
 pip install patchright
 patchright install chromium --with-deps --no-shell
-pip install browser-use==0.5.3 # This is the last version I've patched so far
+pip install browser-use==0.5.4 # This is the last version I've patched so far
 ```
 
 Now execute the program 
