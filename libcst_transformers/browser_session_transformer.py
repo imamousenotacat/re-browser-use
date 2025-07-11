@@ -110,27 +110,31 @@ class BrowserSessionTransformer(cst.CSTTransformer):
   #     print(f"Found at line: {pos.start.line}, in function: {func}")
 
   # 3. Comment out DVD screensaver animation code (two lines) => Removing in this case
-  def leave_If(self, original_node, updated_node):
-    if (self.function_stack
-        and self.function_stack[-1] == "_setup_viewports"
-        and m.matches(
-          updated_node.test,
-          m.Call(
-            func=m.Name("is_new_tab_page"),
-            args=[m.Arg(value=m.Attribute(value=m.Name("page"), attr=m.Name("url")))]
+  def leave_SimpleStatementLine(self, original_node, updated_node):
+    # Match: await self._show_dvd_screensaver_loading_animation(...)
+    if (
+        len(updated_node.body) == 1 and
+        m.matches(
+          updated_node.body[0],
+          m.Expr(
+            value=m.Await(
+              expression=m.Call(
+                func=m.Attribute(
+                  value=m.Name("self"),
+                  attr=m.Name("_show_dvd_screensaver_loading_animation"),
+                )
+              )
+            )
           )
         )
     ):
-      return cst.RemoveFromParent()
-      # This below is the best you can do because comments in LibCST are not valid alone. It's stupid, but they have to be attached to code
-      # Replace the 'if' with a Pass statement and leading comments.
-      # return cst.SimpleStatementLine(
-      #     body=[cst.EmptyLine()],
-      #     leading_lines=[
-      #         cst.EmptyLine(comment=cst.Comment("# if page.url == 'about:blank':")),
-      #         cst.EmptyLine(comment=cst.Comment("#     await self._show_dvd_screensaver_loading_animation(page)")),
-      #     ]
-      # )
+      return cst.SimpleStatementLine(
+        [cst.Pass()],
+        leading_lines=[
+          cst.EmptyLine(comment=cst.Comment("# Invocation commented out by transformer")),
+          cst.EmptyLine(comment=cst.Comment("# await self._show_dvd_screensaver_loading_animation(...)")),
+        ]
+      )
 
     return updated_node
 
