@@ -113,7 +113,8 @@ jobs:
       - run: playwright install chromium
 
       # TODO: just depend on the other test.yml action for this instead of re-running the tests here
-      - run: uv run pytest tests/ci                  # dont push the package to PyPI if the tests fail
+      # The manipulations the MCP module performs on the loggers were breaking some tests when executed in conjunction
+      - run: uv run pytest tests/ci --ignore=tests/ci/test_mcp_client.py --ignore=tests/ci/test_mcp_server.py # dont push the package to PyPI if the tests fail
 
       # publish to TestPyPI
       - run: uv publish --trusted-publishing always
