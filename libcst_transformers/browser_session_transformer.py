@@ -110,33 +110,34 @@ class BrowserSessionTransformer(cst.CSTTransformer):
   #     print(f"Found at line: {pos.start.line}, in function: {func}")
 
   # 3. Comment out DVD screensaver animation code (two lines) => Removing in this case
-  def leave_SimpleStatementLine(self, original_node, updated_node):
-    # Match: await self._show_dvd_screensaver_loading_animation(...)
-    if (
-        len(updated_node.body) == 1 and
-        m.matches(
-          updated_node.body[0],
-          m.Expr(
-            value=m.Await(
-              expression=m.Call(
-                func=m.Attribute(
-                  value=m.Name("self"),
-                  attr=m.Name("_show_dvd_screensaver_loading_animation"),
-                )
-              )
-            )
-          )
-        )
-    ):
-      return cst.SimpleStatementLine(
-        [cst.Pass()],
-        leading_lines=[
-          cst.EmptyLine(comment=cst.Comment("# Invocation commented out by transformer")),
-          cst.EmptyLine(comment=cst.Comment("# await self._show_dvd_screensaver_loading_animation(...)")),
-        ]
-      )
-
-    return updated_node
+  # 16:49 11/07/2025 THANKS TO A "hacky" IMPLEMENTATION I NEED TO INVOKE THE BLOODY FUNCTION SEE BELOW leave_Call
+  # def leave_SimpleStatementLine(self, original_node, updated_node):
+  #   # Match: await self._show_dvd_screensaver_loading_animation(...)
+  #   if (
+  #       len(updated_node.body) == 1 and
+  #       m.matches(
+  #         updated_node.body[0],
+  #         m.Expr(
+  #           value=m.Await(
+  #             expression=m.Call(
+  #               func=m.Attribute(
+  #                 value=m.Name("self"),
+  #                 attr=m.Name("_show_dvd_screensaver_loading_animation"),
+  #               )
+  #             )
+  #           )
+  #         )
+  #       )
+  #   ):
+  #     return cst.SimpleStatementLine(
+  #       [cst.Pass()],
+  #       leading_lines=[
+  #         cst.EmptyLine(comment=cst.Comment("# Invocation commented out by transformer")),
+  #         cst.EmptyLine(comment=cst.Comment("# await self._show_dvd_screensaver_loading_animation(...)")),
+  #       ]
+  #     )
+  #
+  #   return updated_node
 
   # 4. Update remove_highlights method signature to accept Optional[Frame]
   def leave_FunctionDef(self, original_node, updated_node):
@@ -205,6 +206,15 @@ class BrowserSessionTransformer(cst.CSTTransformer):
 
     return updated_node
 
+  SHOW_DVD_SCREENSAVER_LOADING_ANIMATION_JS = '''"""(browser_session_label) => {
+  const animated_title = `Starting agent ${browser_session_label}...`;
+  if (document.title === animated_title) {
+      return;      // already run on this tab, dont run again
+  }
+  document.title = animated_title;
+  }
+  """'''
+
   # 7. Update get_clickable_elements to get_multitarget_clickable_elements and add remove_highlights parameter
   def leave_Call(self, original_node, updated_node):
     if (
@@ -223,6 +233,26 @@ class BrowserSessionTransformer(cst.CSTTransformer):
         )
       )
       return updated_node.with_changes(func=new_func, args=args)
+
+    # 3. Go to hell screensaver => _show_dvd_screensaver_loading_animation replacing the javascript invoked because
+    # the title set is used somewhere else ...
+    if (
+        self.function_stack
+        and self.function_stack[-1] == "_show_dvd_screensaver_loading_animation"
+        and m.matches(
+      original_node,
+      m.Call(
+        func=m.Attribute(
+          value=m.Name("page"),
+          attr=m.Name("evaluate"),
+        )
+      )
+    )
+    ):
+      new_args = [cst.Arg(value=cst.SimpleString(self.SHOW_DVD_SCREENSAVER_LOADING_ANIMATION_JS))]
+      if len(updated_node.args) > 1:
+        new_args.extend(updated_node.args[1:])
+      return updated_node.with_changes(args=new_args)
 
     return updated_node
 
