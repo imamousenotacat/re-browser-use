@@ -115,15 +115,11 @@ class BrowserSessionTransformer(cst.CSTTransformer):
         and self.function_stack[-1] == "_setup_viewports"
         and m.matches(
           updated_node.test,
-          m.Comparison(
-            left=m.Attribute(value=m.Name("page"), attr=m.Name("url")),
-            comparisons=[
-              m.ComparisonTarget(
-                operator=m.Equal(),
-                comparator=m.SimpleString("'about:blank'")
-              )
-            ]
-          ))
+          m.Call(
+            func=m.Name("is_new_tab_page"),
+            args=[m.Arg(value=m.Attribute(value=m.Name("page"), attr=m.Name("url")))]
+          )
+        )
     ):
       return cst.RemoveFromParent()
       # This below is the best you can do because comments in LibCST are not valid alone. It's stupid, but they have to be attached to code
