@@ -148,7 +148,7 @@ if (node instanceof ShadowRoot) {
   return id;
 }`);
 
-/* --- 8. We are not always use 'body' as the 'initialRootNode' ... */
+/* --- 8. We don't always use 'body' as the 'initialRootNode' ... */
 const rootIdDecl = funcBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
   .find(decl => decl.getName() === "rootId" && decl.getInitializerOrThrow().getText() === "buildDomTree(document.body)");
 
