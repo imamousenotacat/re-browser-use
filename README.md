@@ -1,5 +1,7 @@
 <h1 align="center">Enable AI to control your browser 🤖</h1>
 
+A patched, drop-in replacement for browser use, capable of defeating Cloudflare's verification
+
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
 
 ```bash
