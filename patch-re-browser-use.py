@@ -6,6 +6,7 @@ from libcst_transformers.browser_session_transformer import BrowserSessionTransf
 from libcst_transformers.dom_service_transformer import DomServiceTransformer
 from libcst_transformers.test_controller_transformer import TestControllerTransformer
 from libcst_transformers.evaluate_tasks_transformer import EvaluateTaskTransformer
+from libcst_transformers.chat_google_transformer import ChatGoogleTransformer
 from ruamel.yaml import YAML
 from tomlkit import parse, dumps, array, inline_table
 
@@ -44,6 +45,7 @@ patch_python_file("browser_use/browser/session.py", BrowserSessionTransformer())
 patch_python_file("browser_use/dom/service.py", DomServiceTransformer())
 patch_python_file("tests/ci/test_controller.py", TestControllerTransformer())
 patch_python_file("tests/ci/evaluate_tasks.py", EvaluateTaskTransformer())
+patch_python_file("browser_use/llm/google/chat.py", ChatGoogleTransformer())
 
 # Patching pyproject.toml
 RE_PATCHRIGHT_VERSION = "re-patchright>=1.52.10"
