@@ -85,7 +85,7 @@ pip uninstall re-browser-use -y
 
 pip install patchright
 patchright install chromium --with-deps --no-shell
-pip install browser-use==0.5.4 # This is the last version I've patched so far
+pip install browser-use==0.5.5 # This is the last version I've patched so far
 ```
 
 Now execute the program 
