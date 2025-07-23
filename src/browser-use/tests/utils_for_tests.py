@@ -2,7 +2,7 @@
 import os
 from browser_use.llm import ChatGoogle
 
-BY_DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash-lite-preview-06-17"
+BY_DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash-lite"
 
 
 # async def create_browser_session(playwright, headless=True):

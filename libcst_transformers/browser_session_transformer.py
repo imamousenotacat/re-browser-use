@@ -91,7 +91,7 @@ class BrowserSessionTransformer(cst.CSTTransformer):
 
     return updated_node.with_changes(body=body)
 
-  # NOT TO BE REMOVED BECAUSE IT'S AND INTERESTING TEST
+  # NOT TO BE REMOVED BECAUSE IT'S AN INTERESTING TEST
   # def visit_If(self, node):
   #   if m.matches(
   #       node.test,
