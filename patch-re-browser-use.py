@@ -63,6 +63,9 @@ for i, dep in enumerate(deps):
     deps[i] = RE_PATCHRIGHT_VERSION
     break
 
+# Add the dependency to the library enabling real clicks ...
+deps.append("re-cdp-patches>=0.9")
+
 # and remove the required-environments key from [tool.uv]
 if "tool" in doc and "uv" in doc["tool"]:
   doc["tool"]["uv"].pop("required-environments", None)

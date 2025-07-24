@@ -2,6 +2,7 @@ import libcst as cst
 from libcst import matchers as m
 from libcst.metadata import PositionProvider
 
+
 class BrowserSessionTransformer(cst.CSTTransformer):
   """
   Applies 8 specific changes to browser/session.py as per the diff.
@@ -66,6 +67,7 @@ class BrowserSessionTransformer(cst.CSTTransformer):
       cst.parse_statement("from patchright.async_api import Frame as PatchrightFrame"),
       cst.parse_statement("from playwright.async_api import Frame as PlaywrightFrame"),
       cst.parse_statement("Frame = PatchrightFrame | PlaywrightFrame"),
+      cst.parse_statement("from cdp_patches.input import AsyncInput"),
     ]
     # Attach comment to first statement
     new_stmts[0] = new_stmts[0].with_changes(
@@ -169,6 +171,64 @@ class BrowserSessionTransformer(cst.CSTTransformer):
           params=updated_node.params.with_changes(params=params)
         )
 
+    if original_node.name.value == "_click_element_node":
+      # The two functions to insert, no leading indentation
+      new_funcs_code = """
+async def get_element_handle_pos(element_handle: ElementHandle):
+    bounding_box = await element_handle.bounding_box()
+    assert bounding_box
+
+    x, y, width, height = bounding_box.get("x"), bounding_box.get("y"), bounding_box.get("width"), bounding_box.get("height")
+    assert x and y and width and height
+
+    x, y = x + width // 2, y + height // 2
+    return x, y
+
+async def click_element_handle(element_handle: ElementHandle):
+    browser_context: BrowserContext = page.context
+    # MOU14: Probably do something similar to what I saw in CDP-Patches tests and associate this object to the page
+    if not hasattr(page, 'async_input'):
+        page.async_input = await AsyncInput(browser=browser_context) # type: ignore
+    x, y = await get_element_handle_pos(element_handle)
+    await page.async_input.click("left", x, y) # type: ignore
+  """
+      # Parse the new functions
+      funcs_module = cst.parse_module(new_funcs_code.strip())
+      new_funcs = [stmt for stmt in funcs_module.body if isinstance(stmt, cst.FunctionDef)]
+
+      first_func = new_funcs[0]
+      middle_funcs = new_funcs[1:-1]
+      last_func = new_funcs[-1]
+
+      def insert_before_perform_click(body_list):
+        for i, stmt in enumerate(body_list):
+          if isinstance(stmt, cst.FunctionDef) and stmt.name.value == "perform_click":
+            # Insert last_func first (closest before perform_click)
+            body_list.insert(i, last_func)
+            # Insert middle_funcs reversed
+            for f in reversed(middle_funcs):
+              body_list.insert(i, f)
+            # Insert first_func last (with leading empty line)
+            body_list.insert(i, first_func)
+            # Insert one EmptyLine before all inserted functions (blank line above)
+            body_list.insert(i, cst.EmptyLine())
+            return True
+        return False
+
+      body_list = list(updated_node.body.body)
+
+      # Try inside try-block body if not found
+      for idx, stmt in enumerate(body_list):
+        if isinstance(stmt, cst.Try):
+          try_body = list(stmt.body.body)
+          inserted = insert_before_perform_click(try_body)
+          if inserted:
+            new_try = stmt.with_changes(body=stmt.body.with_changes(body=try_body))
+            body_list[idx] = new_try
+            break
+
+      return updated_node.with_changes(body=updated_node.body.with_changes(body=body_list))
+
     return updated_node
 
   # 5. Update remove_highlights body to use target_frame or get_current_page
@@ -184,12 +244,12 @@ class BrowserSessionTransformer(cst.CSTTransformer):
     ):
       # Replace with: target = target_frame if target_frame else await self.get_current_page()
       new_value = cst.parse_expression(
-          "target_frame if target_frame else await self.get_current_page()"
+        "target_frame if target_frame else await self.get_current_page()"
       )
       # Return a new Assign node, updating the target and value
       return updated_node.with_changes(
-          targets=[updated_node.targets[0].with_changes(target=cst.Name("target"))],
-          value=new_value,
+        targets=[updated_node.targets[0].with_changes(target=cst.Name("target"))],
+        value=new_value,
       )
 
     return updated_node
@@ -256,17 +316,7 @@ class BrowserSessionTransformer(cst.CSTTransformer):
 
     return updated_node
 
-  def leave_ClassDef(self, original_node, updated_node):
-    # Filter for the class named "BrowserSession"
-    if original_node.name.value == "BrowserSession":
-      method_node = cst.parse_statement(method_code)  # This gives you a SimpleStatementLine or FunctionDef
-      # Insert at the end of the class body
-      new_body = list(updated_node.body.body) + [method_node]
-      return updated_node.with_changes(body=updated_node.body.with_changes(body=new_body))
-
-    return updated_node
-
-method_code ='''
+  method_code = '''
 @staticmethod
 async def create_stealth_browser_session(headless=True) -> BrowserSession:
 	# Creating everything clean and pure using patchright and outside the default initialization process  ...
@@ -276,6 +326,8 @@ async def create_stealth_browser_session(headless=True) -> BrowserSession:
 	browser = await patchright.chromium.launch(headless=headless)
 	browser_context = await browser.new_context()
 	page = await browser_context.new_page()
+	# Adding this new attribute here to perform real clicks ...
+	page.async_input = await AsyncInput(browser=browser_context) # type: ignore[attr-defined]
 	browser_profile = BrowserProfile(
 		channel=BrowserChannel.CHROMIUM,
 		stealth=True
@@ -292,3 +344,55 @@ async def create_stealth_browser_session(headless=True) -> BrowserSession:
 
 	return browser_session
 '''
+
+  def leave_ClassDef(self, original_node, updated_node):
+    # Filter for the class named "BrowserSession"
+    if original_node.name.value == "BrowserSession":
+      method_node = cst.parse_statement(self.method_code)  # This gives you a SimpleStatementLine or FunctionDef
+      # Insert at the end of the class body
+      new_body = list(updated_node.body.body) + [method_node]
+      return updated_node.with_changes(body=updated_node.body.with_changes(body=new_body))
+
+    return updated_node
+
+  def leave_Return(self, original_node: cst.Return, updated_node: cst.Return) -> cst.Return:
+    """
+    Target this:
+    return await perform_click(lambda: element_handle and element_handle.click(timeout=1_500))
+    and replace lambda body with:
+    element_handle and click_element_handle(element_handle)
+    """
+    # Check if it's a return await perform_click(...)
+    if not (
+        isinstance(updated_node.value, cst.Await)
+        and isinstance(updated_node.value.expression, cst.Call)
+        and isinstance(updated_node.value.expression.func, cst.Name)
+        and updated_node.value.expression.func.value == "perform_click"
+        and len(updated_node.value.expression.args) >= 1
+    ):
+      return updated_node
+
+    lambda_arg = updated_node.value.expression.args[0].value
+    if not isinstance(lambda_arg, cst.Lambda):
+      return updated_node
+
+    def replace_lambda_body(lambda_arg, new_lambda_body, updated_node):
+      new_lambda = lambda_arg.with_changes(body=new_lambda_body)
+      new_args = [updated_node.value.expression.args[0].with_changes(value=new_lambda), ] + list(updated_node.value.expression.args[1:])
+      new_call = updated_node.value.expression.with_changes(args=new_args)
+      new_value = updated_node.value.with_changes(expression=new_call)
+      return new_value
+
+    # Inspect the lambda body to check if it's exactly: element_handle and element_handle.click(timeout=1_500)
+    expected_body_node = cst.parse_expression("element_handle and element_handle.click(timeout=1_500)")
+    if lambda_arg.body.deep_equals(expected_body_node):
+      return updated_node.with_changes(
+        value=replace_lambda_body(lambda_arg, cst.parse_expression("element_handle and click_element_handle(element_handle)"), updated_node))
+
+    # Inspect the lambda body to check if it's exactly: element_handle.click(timeout=1_500)
+    expected_body_node = cst.parse_expression("element_handle.click(timeout=1_500)")
+    if lambda_arg.body.deep_equals(expected_body_node):
+      return updated_node.with_changes(
+        value=replace_lambda_body(lambda_arg, cst.parse_expression("click_element_handle(element_handle)"), updated_node))
+
+    return updated_node

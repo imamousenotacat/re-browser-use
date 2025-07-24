@@ -54,7 +54,7 @@ async def main():
         "Go to https://nopecha.com/demo/cloudflare, wait for the verification checkbox to appear, click it once, and wait for 10 seconds."
         "That’s all. If you get redirected, don’t worry."
       ),
-      llm=ChatGoogle(model="gemini-2.5-flash-lite-preview-06-17"),
+      llm=ChatGoogle(model="gemini-2.5-flash-lite"),
       browser_session=browser_session
     )
     await agent.run(10)
