@@ -17,6 +17,7 @@ async def _create_browser_session(playwright, headless=True):
   page = await browser_context.new_page()
   browser_profile = BrowserProfile(
     channel=BrowserChannel.CHROMIUM,
+    headless=headless,
     stealth=True
   )
 

@@ -67,7 +67,6 @@ class BrowserSessionTransformer(cst.CSTTransformer):
       cst.parse_statement("from patchright.async_api import Frame as PatchrightFrame"),
       cst.parse_statement("from playwright.async_api import Frame as PlaywrightFrame"),
       cst.parse_statement("Frame = PatchrightFrame | PlaywrightFrame"),
-      cst.parse_statement("from cdp_patches.input import AsyncInput"),
     ]
     # Attach comment to first statement
     new_stmts[0] = new_stmts[0].with_changes(
@@ -172,8 +171,11 @@ class BrowserSessionTransformer(cst.CSTTransformer):
         )
 
     if original_node.name.value == "_click_element_node":
-      # The two functions to insert, no leading indentation
+      # The two functions and the lambda to insert, no leading indentation
       new_funcs_code = """
+# Depending on the 'headless' value, we perform a different kind of click
+click_func = (lambda: element_handle.click(timeout=1_500)) if self.browser_profile.headless else (lambda: click_element_handle(element_handle))
+      
 async def get_element_handle_pos(element_handle: ElementHandle):
     bounding_box = await element_handle.bounding_box()
     assert bounding_box
@@ -185,32 +187,28 @@ async def get_element_handle_pos(element_handle: ElementHandle):
     return x, y
 
 async def click_element_handle(element_handle: ElementHandle):
-    browser_context: BrowserContext = page.context
+    # Delaying the import to this point not to have trouble with setxkbmap -print Cannot open display "default display"
+    from cdp_patches.input import AsyncInput
+
     # MOU14: Probably do something similar to what I saw in CDP-Patches tests and associate this object to the page
     if not hasattr(page, 'async_input'):
+        browser_context: BrowserContext = page.context
         page.async_input = await AsyncInput(browser=browser_context) # type: ignore
+    
     x, y = await get_element_handle_pos(element_handle)
     await page.async_input.click("left", x, y) # type: ignore
   """
-      # Parse the new functions
-      funcs_module = cst.parse_module(new_funcs_code.strip())
-      new_funcs = [stmt for stmt in funcs_module.body if isinstance(stmt, cst.FunctionDef)]
-
-      first_func = new_funcs[0]
-      middle_funcs = new_funcs[1:-1]
-      last_func = new_funcs[-1]
+      # Parse the new functions and assignment
+      new_stmts_module = cst.parse_module(new_funcs_code.strip())
+      new_stmts = list(new_stmts_module.header) + list(new_stmts_module.body)
 
       def insert_before_perform_click(body_list):
         for i, stmt in enumerate(body_list):
           if isinstance(stmt, cst.FunctionDef) and stmt.name.value == "perform_click":
-            # Insert last_func first (closest before perform_click)
-            body_list.insert(i, last_func)
-            # Insert middle_funcs reversed
-            for f in reversed(middle_funcs):
-              body_list.insert(i, f)
-            # Insert first_func last (with leading empty line)
-            body_list.insert(i, first_func)
-            # Insert one EmptyLine before all inserted functions (blank line above)
+            # Insert statements in reverse order to maintain original order
+            for new_stmt in reversed(new_stmts):
+                body_list.insert(i, new_stmt)
+            # Insert one EmptyLine before all inserted statements
             body_list.insert(i, cst.EmptyLine())
             return True
         return False
@@ -326,10 +324,14 @@ async def create_stealth_browser_session(headless=True) -> BrowserSession:
 	browser = await patchright.chromium.launch(headless=headless)
 	browser_context = await browser.new_context()
 	page = await browser_context.new_page()
-	# Adding this new attribute here to perform real clicks ...
-	page.async_input = await AsyncInput(browser=browser_context) # type: ignore[attr-defined]
+	if not headless:
+		# Adding this new attribute here to perform real clicks ...
+		from cdp_patches.input import AsyncInput
+		page.async_input = await AsyncInput(browser=browser_context) # type: ignore[attr-defined]
+
 	browser_profile = BrowserProfile(
 		channel=BrowserChannel.CHROMIUM,
+		headless=headless,
 		stealth=True
 	)
 
@@ -387,12 +389,12 @@ async def create_stealth_browser_session(headless=True) -> BrowserSession:
     expected_body_node = cst.parse_expression("element_handle and element_handle.click(timeout=1_500)")
     if lambda_arg.body.deep_equals(expected_body_node):
       return updated_node.with_changes(
-        value=replace_lambda_body(lambda_arg, cst.parse_expression("element_handle and click_element_handle(element_handle)"), updated_node))
+        value=replace_lambda_body(lambda_arg, cst.parse_expression("element_handle and click_func()"), updated_node))
 
     # Inspect the lambda body to check if it's exactly: element_handle.click(timeout=1_500)
     expected_body_node = cst.parse_expression("element_handle.click(timeout=1_500)")
     if lambda_arg.body.deep_equals(expected_body_node):
       return updated_node.with_changes(
-        value=replace_lambda_body(lambda_arg, cst.parse_expression("click_element_handle(element_handle)"), updated_node))
+        value=replace_lambda_body(lambda_arg, cst.parse_expression("click_func()"), updated_node))
 
     return updated_node
