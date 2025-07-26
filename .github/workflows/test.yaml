@@ -116,7 +116,9 @@ jobs:
           playwright install chromium
           # re-patchright install chromium
 
-      - run: pytest --numprocesses auto -x tests/ci/${{ matrix.test_filename }}.py
+      # MOU14: I DON'T GIVE A DAMN ABOUT RUNNING tests IN PARALLEL. THAT IT'S NOT MY WAR ...
+      # - run: pytest --numprocesses auto -x tests/ci/${{ matrix.test_filename }}.py
+      - run: pytest -x tests/ci/${{ matrix.test_filename }}.py
 
   evaluate-tasks:
     needs: call-apply-patches
