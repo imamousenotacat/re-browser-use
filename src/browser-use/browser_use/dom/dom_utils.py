@@ -5,7 +5,24 @@ import re
 from browser_use.dom.views import DOMElementNode, DOMBaseNode
 from browser_use.logging_config import addLoggingLevel
 from dataclasses import dataclass
-from patchright.async_api import Error, Frame, Page, CDPSession, JSHandle
+
+# You have to consider both: types from patchright and playwright ...
+from browser_use.browser.types import Page
+# TODO: MOU14 For the moment I'm doing this here, but probably this should be moved to types.py  ...
+from patchright.async_api import Error as PatchrightError
+from playwright.async_api import Error as PlaywrightError
+from patchright.async_api import Frame as PatchrightFrame
+from playwright.async_api import Frame as PlaywrightFrame
+from patchright.async_api import CDPSession as PatchrightCDPSession
+from playwright.async_api import CDPSession as PlaywrightCDPSession
+from patchright.async_api import JSHandle as PatchrightJSHandle
+from playwright.async_api import JSHandle as PlaywrightJSHandle
+
+Error = (PatchrightError, PlaywrightError)
+Frame = PatchrightFrame | PlaywrightFrame
+CDPSession = PatchrightCDPSession | PlaywrightCDPSession
+JSHandle = PatchrightJSHandle | PlaywrightJSHandle
+
 from typing import List, Tuple, Dict, Any, Protocol, Optional
 from urllib.parse import urlparse
 
@@ -183,7 +200,7 @@ class DomUtils:
   async def _get_cdp_session_for_frame(self, page: Page, frame: Frame) -> CDPSession | None:
     logger.trace(f"Trying to create CDPSession for frame={frame} ...")
     try:
-      cdp_session = await page.context.new_cdp_session(frame)
+      cdp_session = await page.context.new_cdp_session(frame._impl_obj)
       logger.trace(f"{type(cdp_session)} object created for Frame={frame} ...")
       return cdp_session
     except Error as e:
