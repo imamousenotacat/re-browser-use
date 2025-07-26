@@ -8,9 +8,12 @@ This little project was created because I was fed up with getting blocked by Clo
 python examples\nopecha_cloudflare.py
 ```
 
-![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare.py.gif)
+![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/using-proton-vpn.gif)
 
-Or this one (which I think is a _browser-use_ test that has been longed for and searched for quite a while 😜):
+I have added OS level clicks in headful mode to be able to use ProtonVPN. Credit again to [Vinyzu](https://github.com/Vinyzu), because I've used for this a 
+pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project. 
+
+Or this one (which I think is a _browser-use_ test that has been longed for and sought after for quite a while 😜):
 
 ```bash
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
@@ -85,7 +88,7 @@ pip uninstall re-browser-use -y
 
 pip install patchright
 patchright install chromium --with-deps --no-shell
-pip install browser-use==0.5.5 # This is the last version I've patched so far
+pip install browser-use==0.5.6 # This is the last version I've patched so far
 ```
 
 Now execute the program 
