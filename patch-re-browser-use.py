@@ -8,6 +8,8 @@ from libcst_transformers.conf_test_transformer import ConfTestTransformer
 from libcst_transformers.test_controller_transformer import TestControllerTransformer
 from libcst_transformers.evaluate_tasks_transformer import EvaluateTaskTransformer
 from libcst_transformers.chat_google_transformer import ChatGoogleTransformer
+from libcst_transformers.mcp_server_transformer import MCPServerTransformer
+from libcst_transformers.simple_server_transformer import SimpleServerTransformer
 from ruamel.yaml import YAML
 from tomlkit import parse, dumps, array, inline_table
 
@@ -48,6 +50,8 @@ patch_python_file("tests/ci/conftest.py", ConfTestTransformer())
 patch_python_file("tests/ci/test_controller.py", TestControllerTransformer())
 patch_python_file("tests/ci/evaluate_tasks.py", EvaluateTaskTransformer())
 patch_python_file("browser_use/llm/google/chat.py", ChatGoogleTransformer())
+patch_python_file("browser_use/mcp/server.py", MCPServerTransformer())
+patch_python_file("examples/mcp/simple_server.py", SimpleServerTransformer())
 
 # Patching pyproject.toml
 RE_PATCHRIGHT_VERSION = "re-patchright>=1.52.10"
@@ -66,7 +70,7 @@ for i, dep in enumerate(deps):
     break
 
 # Add the dependency to the library enabling real clicks ...
-deps.append("re-cdp-patches>=0.9")
+deps.append("re-cdp-patches>=0.9.1")
 
 # and remove the required-environments key from [tool.uv]
 if "tool" in doc and "uv" in doc["tool"]:
