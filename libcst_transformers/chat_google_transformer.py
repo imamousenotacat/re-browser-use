@@ -43,6 +43,7 @@ class ChatGoogleTransformer(cst.CSTTransformer):
             value=m.Call(func=m.Name("min")))
         )
     ):
+      # possible saviour ...
       return cst.FlattenSentinel([
         updated_node,
         cst.parse_statement("error_msg = str(e)"),
@@ -99,12 +100,12 @@ def get_client(self) -> genai.Client:
       updated_node = updated_node.with_changes(body=updated_node.body.with_changes(body=body))
 
     if original_node.name.value == "get_client":
-      new_func = cst.parse_module(self.NEW_FUNC_CODE).body[0]  # parse entire function as module, get first stmt (FunctionDef)
+      new_func = cst.parse_module(self.NEW_FUNC_CODE).body[0]  # parse entire function as module, get first stmt (FunctionDef) => possible saviour
       return new_func
 
     return updated_node
 
-  # leave_Await is called after visiting the child of an await expression node
+  # leave_Await is called after visiting the child of an await expression node => possible saviour
   def leave_Await(self, original_node, updated_node):
     # Get code string of the expression safely
     expr_code = cst.Module([]).code_for_node(updated_node.expression)

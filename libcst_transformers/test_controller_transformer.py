@@ -1,6 +1,7 @@
 import libcst as cst
 
 
+# Hellish, look at the simplicity of ConfTestTransformer instead ...
 class TestControllerTransformer(cst.CSTTransformer):
 
   def leave_FunctionDef(self, original_node, updated_node):

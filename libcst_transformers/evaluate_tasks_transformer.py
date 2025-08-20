@@ -97,7 +97,7 @@ for i, task_file in enumerate(TASK_FILES):
             ]
           )
       ):
-        # Parse and fix leading comments
+        # Parse and fix leading comments => possible saviour
         replacement_body = self._parse_and_fix_leading_comments(self.results_async_replacing_code)
         new_body.extend(replacement_body)
       else:

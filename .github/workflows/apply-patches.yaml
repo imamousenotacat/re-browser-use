@@ -31,17 +31,6 @@ jobs:
           cp README.md ./browser-use/README.md
           python patch-re-browser-use.py
 
-      - name: Setup Node v18
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Apply NodeJS Patch
-        run: |
-          npm install
-          node patch-re-browser-use.js
-
       - name: Upload Patched Browser Use
         uses: actions/upload-artifact@v4
         with:
