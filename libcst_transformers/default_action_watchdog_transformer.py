@@ -12,23 +12,6 @@ class DefaultActionWatchdogTransformer(cst.CSTTransformer):
     self.current_function = None
     return updated_node
 
-  def leave_Module(self, original_node, updated_node):
-    target_node = cst.parse_statement("from typing import Any")
-    new_import = cst.parse_statement("from cdp_patches.input import AsyncInput")
-
-    new_body = []
-    for stmt in updated_node.body:
-      if stmt.deep_equals(target_node):
-        # Adding new import after the target node ...
-        new_body.append(stmt)
-        new_body.append(cst.EmptyLine())
-        new_body.append(new_import)
-        continue
-
-      new_body.append(stmt)
-
-    return updated_node.with_changes(body=new_body)
-
   def leave_ClassDef(self, original_node: cst.ClassDef, updated_node: cst.ClassDef) -> cst.ClassDef:
     if original_node.name.value != "DefaultActionWatchdog":
       return updated_node
@@ -37,6 +20,8 @@ class DefaultActionWatchdogTransformer(cst.CSTTransformer):
 # TODO: MOU14 Implement while_holding_ctrl ...
 async def _system_click_element_node_impl(self, element_node, while_holding_ctrl: bool = False) -> dict | None:
     """Perform OS level mouse left click ..."""
+    # Delaying the import to this point not to have trouble with setxkbmap -print Cannot open display "default display"
+    from cdp_patches.input import AsyncInput
     try:
         # The coordinates you need are already in the field absolute_position for the node ...
         bounding_box = element_node.absolute_position
