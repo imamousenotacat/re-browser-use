@@ -100,7 +100,7 @@ def get_client(self) -> genai.Client:
       updated_node = updated_node.with_changes(body=updated_node.body.with_changes(body=body))
 
     if original_node.name.value == "get_client":
-      new_func = cst.parse_module(self.NEW_FUNC_CODE).body[0]  # parse entire function as module, get first stmt (FunctionDef) => possible saviour
+      new_func = cst.parse_module(self.NEW_FUNC_CODE)  # parse entire function as module, get first stmt (FunctionDef) => possible saviour
       return new_func
 
     return updated_node

@@ -19,7 +19,7 @@ def children_and_shadow_roots(self) -> list['EnhancedDOMTreeNode']:
 
   def leave_FunctionDef(self, original_node, updated_node):
     if original_node.name.value == "children_and_shadow_roots":
-      new_func = cst.parse_module(self.NEW_FUNC_CODE).body[0]  # parse entire function as module, get first stmt (FunctionDef) => possible saviour
+      new_func = cst.parse_module(self.NEW_FUNC_CODE)  # parse entire function as module, get first stmt (FunctionDef) => possible saviour
       return new_func
 
     return updated_node

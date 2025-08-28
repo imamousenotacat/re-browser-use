@@ -24,10 +24,8 @@ NEW_IMPORTS = [
   "import yaml",
   "from pydantic import BaseModel",
   "",
-  "from browser_use import BrowserSession",
   "from browser_use.agent.views import AgentHistoryList",
-  "from browser_use.agent.service import Agent",
-  "from tests.utils_for_tests import create_llm",
+  "from tests.utils_for_tests import create_llm, create_stealth_browser_session, create_stealth_agent",
   "from browser_use.llm.messages import UserMessage"
 ]
 
@@ -238,7 +236,7 @@ for i, task_file in enumerate(TASK_FILES):
     ):
       # Parse the new right side using cst.parse_statement
       new_right = cst.parse_statement(
-        "agent = await Agent.create_stealth_agent(task=task, llm=agent_llm, browser_session=session)"
+        "agent = create_stealth_agent(task=task, llm=agent_llm, browser_session=session)"
       ).body[0].value  # .body returns a list of SimpleStatementLine, .value is the Assign node's value
 
       # Replace the value (right side) of the assignment
@@ -266,7 +264,7 @@ for i, task_file in enumerate(TASK_FILES):
         and isinstance(original_node.body[0].value.func, cst.Name)
         and original_node.body[0].value.func.value == "BrowserSession"
     ):
-      return cst.parse_statement("session = await BrowserSession.create_stealth_browser_session(headless=HEADLESS_EVALUATION)")
+      return cst.parse_statement("session = create_stealth_browser_session(headless=HEADLESS_EVALUATION)")
 
     # Match: semaphore = asyncio.Semaphore(MAX_PARALLEL)
     if m.matches(

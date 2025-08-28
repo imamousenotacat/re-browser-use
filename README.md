@@ -2,10 +2,14 @@
 
 ___A patched, drop-in replacement for [browser-use](https://github.com/browser-use/browser-use), capable of defeating Cloudflare's verification.___
 
+<span style="color: red; font-weight: bold; font-style: italic;">It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, this use case is still not being contemplated, so I had to do it myself.<br/></br>
+I need to upload new gif files yet. Coming soon... </span> 😎 
+
+
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
 
 ```bash
-python examples\nopecha_cloudflare.py
+python examples\nopecha_cloudflare_no_playwright.p
 ```
 
 ![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/using-proton-vpn.gif)
@@ -88,7 +92,7 @@ pip uninstall re-browser-use -y
 
 pip install patchright
 patchright install chromium --with-deps --no-shell
-pip install browser-use==0.5.11 # This is the last version I've patched so far
+pip install browser-use==0.6.1 # This is the last version I've patched so far
 ```
 
 Now execute the program 

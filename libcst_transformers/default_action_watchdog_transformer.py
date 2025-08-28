@@ -47,7 +47,7 @@ async def _system_click_element_node_impl(self, element_node, while_holding_ctrl
         async_input = await AsyncInput(pid = self.browser_session._local_browser_watchdog._subprocess.pid) # type: ignore
         await async_input.click("left", center_x, center_y)
 
-        self.logger.debug('🖱️ Clicked successfully using x,y coordinates')
+        self.logger.debug(f'🖱️ Clicked successfully using x=[{center_x}],y=[{center_y}] coordinates ...')
         # Return coordinates as dict for metadata
         return {"click_x": center_x, "click_y": center_y}
     except Exception as e:

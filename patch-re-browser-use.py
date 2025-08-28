@@ -1,7 +1,6 @@
 import libcst as cst
 from libcst.metadata import MetadataWrapper
 from libcst import Module
-from libcst_transformers.agent_service_transformer import AgentServiceTransformer
 from libcst_transformers.browser_session_transformer import BrowserSessionTransformer
 from libcst_transformers.dom_service_transformer import DomServiceTransformer
 from libcst_transformers.conf_test_transformer import ConfTestTransformer
@@ -62,11 +61,6 @@ patch_python_file("browser_use/dom/serializer/serializer.py", DomSerializerTrans
 patch_python_file("browser_use/dom/service.py", DomServiceTransformer())
 patch_python_file("browser_use/dom/views.py", DomViewsTransformer())
 
-# Applying all the libcst transformers ...
-# patch_python_file("browser_use/agent/service.py", AgentServiceTransformer())
-
-
-
 # Step 1: Parse TOML and replace the dependency ...
 with open_file("pyproject.toml") as f:
   doc = parse(f.read())
@@ -93,7 +87,7 @@ author["name"] = "Gregor Zunic, patched by github.com/imamousenotacat/"
 authors_arr.append(author)
 authors_arr.multiline(False)
 doc["project"]["authors"] = authors_arr
-doc["project"]["version"] = "0.5.11"
+doc["project"]["version"] = "0.6.1"
 
 all_deps = doc["project"]["optional-dependencies"]["all"]
 for i, dep in enumerate(all_deps):

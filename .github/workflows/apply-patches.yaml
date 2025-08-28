@@ -23,7 +23,7 @@ jobs:
 
       - name: Clone Browser Use Version
         run: |
-          git clone https://github.com/browser-use/browser-use --branch 0.5.11
+          git clone https://github.com/browser-use/browser-use --branch 0.6.1
 
       - name: Apply Python Patch
         run: |
