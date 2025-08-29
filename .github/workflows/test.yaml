@@ -111,6 +111,16 @@ jobs:
       - name: Install Chromium browser
         run: uvx playwright install chromium --with-deps --no-shell
 
+      # I don't think is relevant but just in case because in 0.6.1 I got a lot of tests failing ...
+      - name: Cache browser-use extensions
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.config/browseruse/extensions
+          key: ${{ runner.os }}-browseruse-extensions-${{ hashFiles('browser_use/browser/profile.py') }}
+          restore-keys: |
+            ${{ runner.os }}-browseruse-extensions-
+
       # MOU14: I DON'T GIVE A DAMN ABOUT RUNNING tests IN PARALLEL. THAT IT'S NOT MY WAR ...
       # - run: pytest --numprocesses auto -x tests/ci/${{ matrix.test_filename }}.py
       - run: pytest -x tests/ci/${{ matrix.test_filename }}.py

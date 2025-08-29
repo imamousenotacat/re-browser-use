@@ -27,9 +27,9 @@ jobs:
 
       - name: Apply Python Patch
         run: |
-          cp -r ./src/browser-use/. ./browser-use
+          # cp -r ./src/browser-use/. ./browser-use
           cp README.md ./browser-use/README.md
-          python patch-re-browser-use.py
+          # python patch-re-browser-use.py
 
       - name: Upload Patched Browser Use
         uses: actions/upload-artifact@v4
