@@ -66,17 +66,29 @@ async def _system_click_element_node_impl(self, element_node, while_holding_ctrl
 
     return updated_node.with_changes(body=updated_node.body.with_changes(body=new_body))
 
-  def leave_Call(self, original_node: cst.Call, updated_node: cst.Call) -> cst.BaseExpression:
+  BEAUTIFUL_IF_ELSE = """
+if self.browser_session.browser_profile.headless:
+  click_metadata = await self._click_element_node_impl(element_node, while_holding_ctrl=event.while_holding_ctrl)
+else:
+  click_metadata = await self._system_click_element_node_impl(element_node, while_holding_ctrl=event.while_holding_ctrl)
+"""
+
+  # Simplifying things, this code can be brittle, but it is extremely easy to read ...
+  def leave_Try(self, original_node, updated_node):
     if self.current_function == "on_ClickElementEvent":
-      # Match calls to self._click_element_node_impl(...)
-      if (
-          isinstance(original_node.func, cst.Attribute) and
-          isinstance(original_node.func.value, cst.Name) and
-          original_node.func.value.value == "self" and
-          original_node.func.attr.value == "_click_element_node_impl"
-      ):
-        # Replace the attribute to _system_click_element_node_impl
-        new_func = updated_node.func.with_changes(attr=cst.Name("_system_click_element_node_impl"))
-        return updated_node.with_changes(func=new_func)
+      # Identify the target line using a string match
+      target_line = "click_metadata = await self._click_element_node_impl(element_node, while_holding_ctrl=event.while_holding_ctrl)"
+
+      # Determine the matching statement and where to insert above it
+      new_body = []
+      for stmt in updated_node.body.body:
+        expr_code = cst.Module([]).code_for_node(stmt).strip()
+        if (target_line == expr_code):
+          new_stmt = cst.parse_statement(self.BEAUTIFUL_IF_ELSE)  # This gives you a SimpleStatementLine or FunctionDef
+          new_body.append(new_stmt)
+        else:
+          new_body.append(stmt)
+
+      return updated_node.with_changes(body=updated_node.body.with_changes(body=new_body))
 
     return updated_node
