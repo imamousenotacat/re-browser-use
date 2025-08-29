@@ -13,6 +13,7 @@ from libcst_transformers.default_action_watchdog_transformer import DefaultActio
 from libcst_transformers.highlights_transformer import HighlightsTransformer
 from libcst_transformers.dom_serializer_transformer import DomSerializerTransformer
 from libcst_transformers.dom_views_transformer import DomViewsTransformer
+from libcst_transformers.screenshot_watchdog_transformer import ScreenshotWatchdogTransformer
 from ruamel.yaml import YAML
 from tomlkit import parse, dumps, array, inline_table
 
@@ -60,6 +61,7 @@ patch_python_file("browser_use/dom/debug/highlights.py", HighlightsTransformer()
 patch_python_file("browser_use/dom/serializer/serializer.py", DomSerializerTransformer())
 patch_python_file("browser_use/dom/service.py", DomServiceTransformer())
 patch_python_file("browser_use/dom/views.py", DomViewsTransformer())
+patch_python_file("browser_use/browser/screenshot_watchdog.py", ScreenshotWatchdogTransformer())
 
 # Step 1: Parse TOML and replace the dependency ...
 with open_file("pyproject.toml") as f:
