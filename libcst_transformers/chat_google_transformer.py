@@ -69,6 +69,24 @@ def get_client(self) -> genai.Client:
     return self.client
 '''
 
+  BEAUTIFUL_JSON_FIX = '''
+		def clean_response_before_parsing(response: str) -> str:
+			"""
+			Cleans the raw LLM response string before attempting to parse it as JSON.
+			- Removes markdown code block fences (```json ... ```).
+			- Replaces Python-specific string escapes like \\\\' with a standard single quote.
+			"""
+			json_text = response.strip()
+			if json_text.startswith('```json'):
+				json_text = json_text[len('```json'): -len('```')].strip()
+			elif json_text.startswith('```'):
+				json_text = json_text[len('```'): -len('```')].strip()
+
+			# The response might have escaped single quotes from python's repr, which are not valid in JSON
+			json_text = json_text.replace("\\\\'", "'")
+			return json_text
+'''
+
   def leave_FunctionDef(self, original_node, updated_node):
     if updated_node.name.value == "_make_api_call":
       body = list(updated_node.body.body)
@@ -111,7 +129,10 @@ def get_client(self) -> genai.Client:
       for stmt in updated_node.body.body:
         expr_code = cst.Module([]).code_for_node(stmt).strip()
         if (expr_code.startswith(target_line)):
-          print("daslkfjjñsjalkfjalkjlk")
+          # Inserting BEAUTIFUL_JSON_FIX before 'target_line' ...
+          new_stmts_module = cst.parse_module(self.BEAUTIFUL_JSON_FIX.strip())
+          new_stmts = list(new_stmts_module.header) + list(new_stmts_module.body)
+          new_body.extend(new_stmts)
 
         new_body.append(stmt)
 
