@@ -135,6 +135,7 @@ captcha_cloudflare_yaml = "tests/agent_tasks/captcha_cloudflare.yaml"
 with open_file(captcha_cloudflare_yaml) as f:
   data = yaml.load(f)
 
+data['task'] = 'Go to https://2captcha.com/demo/cloudflare-turnstile and ALWAYS wait 10 seconds patiently without scrolling or doing anything for the verification checkbox to appear. Click that checkbox. Wait a few seconds, then click on Check button, wait a few more seconds for it to complete, then extract the "hostname" value from the displayed dictionary under "Captcha is passed successfully!"'
 data['max_steps'] = 10
 data['judge_context'][1] = 'The hostname returned should be "example.com" which will always be considered a valid name'
 
