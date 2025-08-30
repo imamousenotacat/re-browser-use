@@ -103,6 +103,20 @@ def get_client(self) -> genai.Client:
       new_func = cst.parse_module(self.NEW_FUNC_CODE)  # parse entire function as module, get first stmt (FunctionDef) => possible saviour
       return new_func
 
+    if original_node.name.value == "ainvoke" and not original_node.decorators:
+      # Identify the target line using a string match
+      target_line = "async def _make_api_call():"
+
+      new_body = []
+      for stmt in updated_node.body.body:
+        expr_code = cst.Module([]).code_for_node(stmt).strip()
+        if (expr_code.startswith(target_line)):
+          print("daslkfjjñsjalkfjalkjlk")
+
+        new_body.append(stmt)
+
+      return updated_node.with_changes(body=updated_node.body.with_changes(body=new_body))
+
     return updated_node
 
   # leave_Await is called after visiting the child of an await expression node => possible saviour
