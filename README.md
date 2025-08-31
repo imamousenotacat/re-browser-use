@@ -71,7 +71,7 @@ And finally tell your agent to pass Cloudflare's verification:
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-You will get something very similar to the animated gif above [animated gif above](#using-proton-vpn.gif). This is the code of the example file:
+You will get something very similar to the [animated gif above](#using-proton-vpn.gif). This is the code of the example file:
 
 ```python
 import asyncio
