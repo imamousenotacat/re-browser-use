@@ -10,7 +10,6 @@ ___A patched, drop-in replacement for [browser-use](https://github.com/browser-u
 
 - Pre 0.6.1 versions of this project used to depend on a tweaked version of patchright 
 - (https://github.com/imamousenotacat/re-patchright) but not anymore.
- 
 ```
 
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
