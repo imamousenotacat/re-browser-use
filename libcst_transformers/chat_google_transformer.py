@@ -75,13 +75,13 @@ def clean_response_before_parsing(response: str) -> str:
     # Cleans the raw LLM response string before attempting to parse it as JSON.
     # - Removes markdown code block fences (```json ... ```).
     # - Replaces Python-specific string escapes like \\\\' with a standard single quote.
-    
+
     json_text = response.strip()
     if json_text.startswith('```json'):
         json_text = json_text[len('```json'): -len('```')].strip()
     elif json_text.startswith('```'):
         json_text = json_text[len('```'): -len('```')].strip()
-  
+
     # The response might have escaped single quotes from python's repr, which are not valid in JSON
     json_text = json_text.replace("\\\\'", "'")
     return json_text
@@ -92,28 +92,35 @@ def is_char_escaped(s: str, index: int) -> bool:
     # Handles multiple preceding backslashes (e.g., "abc\\\\\\"def" -> '\\"' is escaped).
     if index == 0:
         return False
-  
+
     num_backslashes = 0
     i = index - 1
     while i >= 0 and s[i] == '\\\\':
         num_backslashes += 1
         i -= 1
-  
+
     # If the number of preceding backslashes is odd, the character is escaped.
     return num_backslashes % 2 == 1
 
-async def click_element_handle(element_handle: ElementHandle):
-    # Delaying the import to this point not to have trouble with setxkbmap -print Cannot open display "default display"
-    from cdp_patches.input import AsyncInput
+def find_next_non_whitespace(text: str, start_index: int) -> int:
+    # Finds the index of the next non-whitespace character from a starting position.
+    for i in range(start_index, len(text)):
+        if not text[i].isspace():
+            return i
 
-    # MOU14: Probably do something similar to what I saw in CDP-Patches tests and associate this object to the page
-    if not hasattr(page, 'async_input'):
-        browser_context: BrowserContext = page.context
-        page.async_input = await AsyncInput(browser=browser_context) # type: ignore
-    
-    x, y = await get_element_handle_pos(element_handle)
-    await page.async_input.click("left", x, y) # type: ignore
-  '''
+    return -1
+
+def find_next_unescaped_char(text: str, char_to_find: str, start_index: int) -> int:
+    # Finds the next occurrence of a character that is not escaped by a backslash.
+    pos = text.find(char_to_find, start_index)
+    while pos != -1:
+        if not is_char_escaped(text, pos):
+            return pos
+        # It was escaped, so search again from the next character.
+        pos = text.find(char_to_find, pos + 1)
+
+    return -1
+'''
 
   def leave_FunctionDef(self, original_node, updated_node):
     if updated_node.name.value == "_make_api_call":
