@@ -2,22 +2,25 @@
 
 ___A patched, drop-in replacement for [browser-use](https://github.com/browser-use/browser-use), capable of defeating Cloudflare's verification.___
 
-<span style="color: red; font-weight: bold; font-style: italic;">It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, this use case is still not being contemplated, so I had to do it myself.<br/></br>
-I need to upload new gif files yet. Coming soon... </span> 😎 
-
+<span style="color: red; font-weight: bold; font-style: italic;">NOTE: It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, this use case is still not being contemplated, so I had to do it myself...<br/><br/>
+ Pre 0.6.1 versions of this project used to depend on a [tweaked version of patchright](https://github.com/imamousenotacat/re-patchright) but not anymore.<br/><br/>
+ I need to upload new gif files yet. Coming soon... </span> 😎
 
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
 
 ```bash
-python examples\nopecha_cloudflare_no_playwright.p
+python examples\nopecha_cloudflare_no_playwright.py
 ```
 
+<a id="using-proton-vpn.gif"></a>
 ![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/using-proton-vpn.gif)
 
 I have added OS level clicks in headful mode to be able to use ProtonVPN. Credit again to [Vinyzu](https://github.com/Vinyzu),
 as I used a pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project for this. 
 
 The one below, I think, is a browser-use test that has been long-awaited and sought after for quite a while 😜:
+
+TODO:
 
 ```bash
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
@@ -37,10 +40,10 @@ Install the package using pip (Python>=3.11):
 pip install re-browser-use
 ```
 
-Install the browser. I'm using Chromium; it works OK for me. The project uses a [tweaked version of patchright](https://github.com/imamousenotacat/re-patchright)
+Install the browser as described in the [browse-use](https://github.com/browser-use/browser-use) repository.
 
 ```bash
-re-patchright install chromium --with-deps --no-shell
+uvx playwright install chromium --with-deps --no-shell
 ```
 
 Create a minimalistic `.env` file. This is what I use. I'm a poor mouse and I can afford only free things. 🙂
@@ -55,57 +58,56 @@ HEADLESS_EVALUATION=false
 And finally tell your agent to pass Cloudflare's verification:
 
 ```bash
-python examples\nopecha_cloudflare.py
+python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-This is the code of the example file 
+You will get something very similar to the animated gif above [animated gif above](#using-proton-vpn.gif). This is the code of the example file:
 
 ```python
 import asyncio
+from browser_use import BrowserProfile, BrowserSession
+from browser_use.agent.service import Agent
 from dotenv import load_dotenv
+from browser_use.llm import ChatGoogle
+
 load_dotenv()
-from browser_use import Agent
-from langchain_google_genai import ChatGoogleGenerativeAI
+
 
 async def main():
-  agent = await Agent.create_stealth_agent(
+  agent = Agent(
     task=(
-      "Go to https://nopecha.com/demo/cloudflare, wait for the verification checkbox to appear, click it once, and wait for 10 seconds."
-      "That’s all. If you get redirected, don’t worry."
+    "Go to https://nopecha.com/demo/cloudflare, and always wait 10 seconds for the verification checkbox to appear."
+    "Once it appears, click it once, and wait 5 more seconds. That’s all. Your job is done. Don't check anything. If you get redirected, don’t worry."
     ),
-    llm=ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite-preview-06-17"),
+    llm=ChatGoogle(model="gemini-2.5-flash-lite"),
+    browser_session=BrowserSession(
+      browser_profile=BrowserProfile(
+        headless=False,
+        cross_origin_iframes=True,
+      )
+    )
   )
   await agent.run(10)
 
 asyncio.run(main())
 ```
 
-I have in the same directory an 'unfolded' version of the code named _nopecha_cloudflare_unfolded.py_.   
-By _"unfolded"_ I mean that my simple helper static method _'Agent.create_stealth_agent'_ is not used. So we can test it with _"regular"_ patchright and browser-use:
-
-Uninstall re-patchright (including the browsers, to be thorough) and re-browser-use and install patchright and browser-use instead: 
+If you want to run the same code with _"regular"_ browser-use to compare the results, uninstall re-browser-use and install browser-use instead:
 
 ```bash
-re-patchright uninstall --all 
-pip uninstall re-patchright -y
 pip uninstall re-browser-use -y
-
-pip install patchright
-patchright install chromium --with-deps --no-shell
 pip install browser-use==0.6.1 # This is the last version I've patched so far
 ```
 
-Now execute the program 
+Now run again the script
 
 ```bash
-python examples\nopecha_cloudflare_unfolded.py
+python examples\nopecha_cloudflare_no_playwright.py
 ```
 
 ![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_unfolded.py.KO.gif)
 
-With the current versions of patchright and browser-use, this won't work.
-
-They can't detect the checkbox (well, to be precise, patchright can see it, but it needs a little extra push).
+With the current versions of browser-use, this still won't work.
 
 ## Why is this project not a PR?
 
