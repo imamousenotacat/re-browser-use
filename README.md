@@ -16,12 +16,12 @@ ___A patched, drop-in replacement for [browser-use](https://github.com/browser-u
 
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
 
-<a id="using-proton-vpn.gif"></a>
+<a id="nopecha_cloudflare.py.gif"></a>
 ```bash
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/using-proton-vpn.gif)
+![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare.py.gif)
 
 I have added OS level clicks in headful mode to be able to use ProtonVPN. Credit again to [Vinyzu](https://github.com/Vinyzu),
 as I used a pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project for this. 
@@ -71,7 +71,7 @@ And finally tell your agent to pass Cloudflare's verification:
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-You will get something very similar to the [animated gif above](#using-proton-vpn.gif). This is the code of the example file:
+You will get something very similar to the [animated gif above](#nopecha_cloudflare.py.gif). This is the code of the example file:
 
 ```python
 import asyncio
