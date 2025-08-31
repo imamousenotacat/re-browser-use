@@ -107,7 +107,6 @@ def find_next_non_whitespace(text: str, start_index: int) -> int:
     for i in range(start_index, len(text)):
         if not text[i].isspace():
             return i
-
     return -1
 
 def find_next_unescaped_char(text: str, char_to_find: str, start_index: int) -> int:
@@ -118,8 +117,76 @@ def find_next_unescaped_char(text: str, char_to_find: str, start_index: int) -> 
             return pos
         # It was escaped, so search again from the next character.
         pos = text.find(char_to_find, pos + 1)
-
     return -1
+
+def repair_json(text: str) -> str:
+    # Repairs a JSON-like string by finding and escaping string values.
+    # This version uses a two-pass approach for clarity and correctness:
+    # 1. First pass: Identify all string values that need repair.
+    # 2. Second pass: Build the new string using the identified segments.
+
+    repairs = []
+    cursor = 0
+
+    # Pass 1: Find all segments to repair.
+    while cursor < len(text):
+        # Find a key-value pair where the value is a string.
+        key_start_pos = find_next_unescaped_char(text, '"', cursor)
+        if key_start_pos == -1: break
+
+        key_end_pos = find_next_unescaped_char(text, '"', key_start_pos + 1)
+        if key_end_pos == -1: break
+
+        colon_pos = find_next_non_whitespace(text, key_end_pos + 1)
+        if colon_pos == -1 or text[colon_pos] != ':':
+            cursor = key_start_pos + 1
+            continue
+
+        value_start_pos = find_next_non_whitespace(text, colon_pos + 1)
+        if value_start_pos == -1 or text[value_start_pos] != '"':
+            cursor = value_start_pos if value_start_pos != -1 else colon_pos + 1
+            continue
+
+        # Find the true end of the string value.
+        content_start_pos = value_start_pos + 1
+        search_pos = content_start_pos
+        value_end_pos = -1
+
+        while search_pos < len(text):
+            potential_end_pos = find_next_unescaped_char(text, '"', search_pos)
+            if potential_end_pos == -1: break
+
+            char_after_quote_pos = find_next_non_whitespace(text, potential_end_pos + 1)
+            if char_after_quote_pos != -1 and text[char_after_quote_pos] in ',}]':
+                value_end_pos = potential_end_pos
+                break
+            else:
+                search_pos = potential_end_pos + 1
+
+        if value_end_pos != -1:
+            # Found a segment. Store its start, end, and the escaped content.
+            content = text[content_start_pos:value_end_pos]
+            escaped_content = json.dumps(content)[1:-1]
+            repairs.append((content_start_pos, value_end_pos, escaped_content))
+            cursor = value_end_pos + 1
+        else:
+            # Malformed, could not find end. Skip past this key to avoid getting stuck.
+            cursor = key_start_pos + 1
+
+    # Pass 2: Build the new string from the original text and the repairs.
+    if not repairs:
+        return text
+
+    output_parts = []
+    last_pos = 0
+    for start, end, replacement in repairs:
+        output_parts.append(text[last_pos:start])
+        output_parts.append(replacement)
+        last_pos = end
+
+    output_parts.append(text[last_pos:])
+
+    return "".join(output_parts)
 '''
 
   def leave_FunctionDef(self, original_node, updated_node):
