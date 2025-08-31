@@ -4,10 +4,11 @@ ___A patched, drop-in replacement for [browser-use](https://github.com/browser-u
 
 ```diff
 - NOTE: 
-- It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, 
+- It seems that after getting rid of Playwright and having done an amazing piece of work developing 
+their own event bus and SafeType CDP client, 
 - this use case is still not being contemplated, so I had to do it myself...
 
-- Pre 0.6.1 versions of this project used to depend on a [tweaked version of patchright](https://github.com/imamousenotacat/re-patchright) but not anymore.
+- Pre 0.6.1 versions of this project used to depend on a tweaked version of patchright (https://github.com/imamousenotacat/re-patchright) but not anymore.
 
 - I still need to upload new gif files yet. Coming soon... 😎
 ```
