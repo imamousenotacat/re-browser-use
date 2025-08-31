@@ -51,6 +51,11 @@ class ChatGoogleTransformer(cst.CSTTransformer):
         cst.parse_statement("logger.error(f'{prefix}{error_msg}')"),
       ])
 
+    target_line = "parsed_data = json.loads(response.text)"
+    expr_code = cst.Module([]).code_for_node(original_node.body[0]).strip()
+    if expr_code.strip() == target_line.strip():
+      return cst.parse_statement("parsed_data = json.loads(repair_json(clean_response_before_parsing(response.text)))")
+
     return updated_node
 
   NEW_FUNC_CODE = '''
