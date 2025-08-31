@@ -11,7 +11,7 @@ ___A patched, drop-in replacement for [browser-use](https://github.com/browser-u
 - Pre 0.6.1 versions of this project used to depend on a tweaked version of patchright 
 - (https://github.com/imamousenotacat/re-patchright) but not anymore.
 
-- I still need to upload new gif files yet. Coming soon... 😎
+- I still need to upload new gif files. Coming soon... 😎
 ```
 
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
@@ -27,8 +27,6 @@ I have added OS level clicks in headful mode to be able to use ProtonVPN. Credit
 as I used a pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project for this. 
 
 The one below, I think, is a browser-use test that has been long-awaited and sought after for quite a while 😜:
-
-TODO:
 
 ```bash
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
