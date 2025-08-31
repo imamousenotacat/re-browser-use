@@ -2,11 +2,9 @@
 
 ___A patched, drop-in replacement for [browser-use](https://github.com/browser-use/browser-use), capable of defeating Cloudflare's verification.___
 
-<code style="color : name_color">ALWAYS SUFFERING WITH UNIMPORTANT THINGS</code>
-$\color{#FF0000}{ALWAYS SUFFERING WITH UNIMPORTANT THINGS!}$
-
 ```diff
-- text in red
+- NOTE: It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, this use case is still not being contemplated, so I had to do it myself...
+- Pre 0.6.1 versions of this project used to depend on a [tweaked version of patchright](https://github.com/imamousenotacat/re-patchright) but not anymore.
 + text in green
 ! text in orange
 # text in gray
