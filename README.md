@@ -8,11 +8,11 @@ ___A patched, drop-in replacement for [browser-use](https://github.com/browser-u
 
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
 
+<a id="using-proton-vpn.gif"></a>
 ```bash
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-<a id="using-proton-vpn.gif"></a>
 ![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/using-proton-vpn.gif)
 
 I have added OS level clicks in headful mode to be able to use ProtonVPN. Credit again to [Vinyzu](https://github.com/Vinyzu),
