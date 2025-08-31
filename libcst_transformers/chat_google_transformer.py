@@ -69,23 +69,48 @@ def get_client(self) -> genai.Client:
     return self.client
 '''
 
+  # The two functions and the lambda to insert, no leading indentation
   BEAUTIFUL_JSON_FIX = '''
-		def clean_response_before_parsing(response: str) -> str:
-			"""
-			Cleans the raw LLM response string before attempting to parse it as JSON.
-			- Removes markdown code block fences (```json ... ```).
-			- Replaces Python-specific string escapes like \\\\' with a standard single quote.
-			"""
-			json_text = response.strip()
-			if json_text.startswith('```json'):
-				json_text = json_text[len('```json'): -len('```')].strip()
-			elif json_text.startswith('```'):
-				json_text = json_text[len('```'): -len('```')].strip()
+# Depending on the 'headless' value, we perform a different kind of click
+click_func = (lambda: element_handle.click(timeout=1_500)) if self.browser_profile.headless else (lambda: click_element_handle(element_handle))
+      
+async def get_element_handle_pos(element_handle: ElementHandle):
+    bounding_box = await element_handle.bounding_box()
+    assert bounding_box
 
-			# The response might have escaped single quotes from python's repr, which are not valid in JSON
-			json_text = json_text.replace("\\\\'", "'")
-			return json_text
-'''
+    x, y, width, height = bounding_box.get("x"), bounding_box.get("y"), bounding_box.get("width"), bounding_box.get("height")
+    assert x and y and width and height
+
+    x, y = x + width // 2, y + height // 2
+    return x, y
+
+def clean_response_before_parsing(response: str) -> str:
+    # Cleans the raw LLM response string before attempting to parse it as JSON.
+    # - Removes markdown code block fences (```json ... ```).
+    # - Replaces Python-specific string escapes like \\\\' with a standard single quote.
+    
+    json_text = response.strip()
+    if json_text.startswith('```json'):
+        json_text = json_text[len('```json'): -len('```')].strip()
+    elif json_text.startswith('```'):
+        json_text = json_text[len('```'): -len('```')].strip()
+  
+    # The response might have escaped single quotes from python's repr, which are not valid in JSON
+    json_text = json_text.replace("\\\\'", "'")
+    return json_text
+
+async def click_element_handle(element_handle: ElementHandle):
+    # Delaying the import to this point not to have trouble with setxkbmap -print Cannot open display "default display"
+    from cdp_patches.input import AsyncInput
+
+    # MOU14: Probably do something similar to what I saw in CDP-Patches tests and associate this object to the page
+    if not hasattr(page, 'async_input'):
+        browser_context: BrowserContext = page.context
+        page.async_input = await AsyncInput(browser=browser_context) # type: ignore
+    
+    x, y = await get_element_handle_pos(element_handle)
+    await page.async_input.click("left", x, y) # type: ignore
+  '''
 
   def leave_FunctionDef(self, original_node, updated_node):
     if updated_node.name.value == "_make_api_call":
@@ -130,9 +155,8 @@ def get_client(self) -> genai.Client:
         expr_code = cst.Module([]).code_for_node(stmt).strip()
         if (expr_code.startswith(target_line)):
           # Inserting BEAUTIFUL_JSON_FIX before 'target_line' ...
-          new_stmts_module = cst.parse_module(self.BEAUTIFUL_JSON_FIX.strip())
-          new_stmts = list(new_stmts_module.header) + list(new_stmts_module.body)
-          new_body.extend(new_stmts)
+          new_stmts_module = cst.parse_module(self.BEAUTIFUL_JSON_FIX)
+          new_body.append(new_stmts_module)
 
         new_body.append(stmt)
 
