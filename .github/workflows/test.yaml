@@ -100,21 +100,16 @@ jobs:
       - run: |
           uv sync --dev --all-extras
 
-      - name: Detect installed Playwright version
-        run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV
-
-      - name: Cache playwright binaries
-        uses: actions/cache@v3
+      - name: Cache chromium binaries
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+          key: ${{ runner.os }}-${{ runner.arch }}-chromium-browser
 
       # Add --with-deps to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
-      # Right now the browsers used by both packages are different ...
-      - run: |
-          playwright install chromium
-          # re-patchright install chromium
+      - name: Install Chromium browser
+        run: uvx playwright install chromium --with-deps --no-shell
 
       # MOU14: I DON'T GIVE A DAMN ABOUT RUNNING tests IN PARALLEL. THAT IT'S NOT MY WAR ...
       # - run: pytest --numprocesses auto -x tests/ci/${{ matrix.test_filename }}.py
@@ -153,22 +148,17 @@ jobs:
       - run: |
           uv sync --dev
 
-      - name: Detect installed Playwright version
-        run: echo "PLAYWRIGHT_VERSION=$(uv pip list --format json | jq -r '.[] | select(.name == "playwright") | .version')" >> $GITHUB_ENV
-
       # It does both: restore (at the start) and store (at the end) in a single step
-      - name: Cache playwright binaries
-        uses: actions/cache@v3
+      - name: Cache chromium binaries
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+          key: ${{ runner.os }}-${{ runner.arch }}-chromium-browser
 
       # Add --with-deps to be able to run it locally with nektos/act: act -W .github/workflows/test.yaml -j evaluate-tasks
-      # Right now the browsers used by both packages are different ...
-      - run: |
-          # playwright install chromium
-          re-patchright install chromium
+      - name: Install Chromium browser
+        run: uvx playwright install chromium --with-deps --no-shell
 
       - name: Run agent tasks evaluation and capture score
         id: eval

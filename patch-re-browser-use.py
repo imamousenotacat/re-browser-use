@@ -1,7 +1,6 @@
 import libcst as cst
 from libcst.metadata import MetadataWrapper
 from libcst import Module
-from libcst_transformers.agent_service_transformer import AgentServiceTransformer
 from libcst_transformers.browser_session_transformer import BrowserSessionTransformer
 from libcst_transformers.dom_service_transformer import DomServiceTransformer
 from libcst_transformers.conf_test_transformer import ConfTestTransformer
@@ -10,6 +9,13 @@ from libcst_transformers.evaluate_tasks_transformer import EvaluateTaskTransform
 from libcst_transformers.chat_google_transformer import ChatGoogleTransformer
 from libcst_transformers.mcp_server_transformer import MCPServerTransformer
 from libcst_transformers.simple_server_transformer import SimpleServerTransformer
+from libcst_transformers.default_action_watchdog_transformer import DefaultActionWatchdogTransformer
+from libcst_transformers.highlights_transformer import HighlightsTransformer
+from libcst_transformers.dom_serializer_transformer import DomSerializerTransformer
+from libcst_transformers.dom_views_transformer import DomViewsTransformer
+from libcst_transformers.screenshot_watchdog_transformer import ScreenshotWatchdogTransformer
+from libcst_transformers.aboutblank_watchdog_transformer import AboutBlankWatchdogTransformer
+from libcst_transformers.local_browser_watchdog_transformer import LocalBrowserWatchdogTransformer
 from ruamel.yaml import YAML
 from tomlkit import parse, dumps, array, inline_table
 
@@ -42,10 +48,7 @@ def patch_python_file(file_path: str, transformer: cst.CSTTransformer):
 
 
 # TODO: MOU14 THESE EXECUTIONS AREN'T IDEMPOTENT FOR THE MOMENT ...
-# Applying all the libcst transformers ...
-patch_python_file("browser_use/agent/service.py", AgentServiceTransformer())
-patch_python_file("browser_use/browser/session.py", BrowserSessionTransformer())
-patch_python_file("browser_use/dom/service.py", DomServiceTransformer())
+# Pre 0.6.1 transformers still valid
 patch_python_file("tests/ci/conftest.py", ConfTestTransformer())
 patch_python_file("tests/ci/test_controller.py", TestControllerTransformer())
 patch_python_file("tests/ci/evaluate_tasks.py", EvaluateTaskTransformer())
@@ -53,21 +56,22 @@ patch_python_file("browser_use/llm/google/chat.py", ChatGoogleTransformer())
 patch_python_file("browser_use/mcp/server.py", MCPServerTransformer())
 patch_python_file("examples/mcp/simple_server.py", SimpleServerTransformer())
 
-# Patching pyproject.toml
-RE_PATCHRIGHT_VERSION = "re-patchright>=1.52.10"
+# Post 0.6.1 transformers ... (some of them were present in the pre 0.6.1 versions
+patch_python_file("browser_use/browser/default_action_watchdog.py", DefaultActionWatchdogTransformer())
+patch_python_file("browser_use/browser/session.py", BrowserSessionTransformer())
+patch_python_file("browser_use/dom/debug/highlights.py", HighlightsTransformer())
+patch_python_file("browser_use/dom/serializer/serializer.py", DomSerializerTransformer())
+patch_python_file("browser_use/dom/service.py", DomServiceTransformer())
+patch_python_file("browser_use/dom/views.py", DomViewsTransformer())
+patch_python_file("browser_use/browser/screenshot_watchdog.py", ScreenshotWatchdogTransformer())
+patch_python_file("browser_use/browser/aboutblank_watchdog.py", AboutBlankWatchdogTransformer())
+patch_python_file("browser_use/browser/local_browser_watchdog.py", LocalBrowserWatchdogTransformer())
 
 # Step 1: Parse TOML and replace the dependency ...
 with open_file("pyproject.toml") as f:
   doc = parse(f.read())
 
 deps = doc["project"]["dependencies"]
-
-old_value = None
-for i, dep in enumerate(deps):
-  if dep.value.startswith("patchright"):
-    old_value = dep.value
-    deps[i] = RE_PATCHRIGHT_VERSION
-    break
 
 # Add the dependency to the library enabling real clicks ...
 deps.append("re-cdp-patches>=0.9.1")
@@ -89,7 +93,7 @@ author["name"] = "Gregor Zunic, patched by github.com/imamousenotacat/"
 authors_arr.append(author)
 authors_arr.multiline(False)
 doc["project"]["authors"] = authors_arr
-doc["project"]["version"] = "0.5.11"
+doc["project"]["version"] = "0.6.1"
 
 all_deps = doc["project"]["optional-dependencies"]["all"]
 for i, dep in enumerate(all_deps):
@@ -106,17 +110,7 @@ scripts[PROJECT_NAME] = scripts.pop("browser-use")
 # Step 2: Dump TOML back to string (preserving formatting)
 new_content = dumps(doc)
 
-# Step 3: Insert the comment above dependencies = [ (only if replacement happened)
-if old_value:
-  comment_line = f"# [{old_value}] is replaced with [{RE_PATCHRIGHT_VERSION}] ...\n"
-  lines = new_content.splitlines(keepends=True)
-  for i, line in enumerate(lines):
-    if line.strip().startswith("dependencies = ["):
-      lines.insert(i, comment_line)
-      break
-  new_content = "".join(lines)
-
-# Step 4: Write back to file
+# Step 3: Write back to file
 with open_file("pyproject.toml", "w") as f:
   f.write(new_content)
 
@@ -145,6 +139,7 @@ captcha_cloudflare_yaml = "tests/agent_tasks/captcha_cloudflare.yaml"
 with open_file(captcha_cloudflare_yaml) as f:
   data = yaml.load(f)
 
+data['task'] = 'Go to https://2captcha.com/demo/cloudflare-turnstile and ALWAYS wait 10 seconds patiently without scrolling or doing anything for the verification checkbox to appear. Click that checkbox. Wait a few seconds, then click on Check button, wait a few more seconds for it to complete, then extract the "hostname" value from the displayed dictionary under "Captcha is passed successfully!"'
 data['max_steps'] = 10
 data['judge_context'][1] = 'The hostname returned should be "example.com" which will always be considered a valid name'
 
