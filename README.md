@@ -6,12 +6,11 @@ ___A patched, drop-in replacement for [browser-use](https://github.com/browser-u
 - NOTE: 
 - It seems that after getting rid of Playwright and having done an amazing piece of work developing 
 - their own event bus and SafeType CDP client, this use case is still not being contemplated by
-- browser-use, so I had to do it myself...
+- browser-use, so I had to do it myself... 😎
 
 - Pre 0.6.1 versions of this project used to depend on a tweaked version of patchright 
 - (https://github.com/imamousenotacat/re-patchright) but not anymore.
-
-- I still need to upload new gif files. Coming soon... 😎
+ 
 ```
 
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
@@ -105,8 +104,8 @@ asyncio.run(main())
 If you want to run the same code with _"regular"_ browser-use to compare the results, uninstall re-browser-use and install browser-use instead:
 
 ```bash
-pip uninstall re-browser-use -y
-pip install browser-use==0.6.1 # This is the last version I've patched so far
+uv pip uninstall re-browser-use
+uv pip install browser-use==0.6.1 # This is the last version I've patched so far
 ```
 
 Now run again the script
@@ -115,7 +114,7 @@ Now run again the script
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_unfolded.py.KO.gif)
+![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_no_playwright.py.KO.gif)
 
 With the current versions of browser-use, this still won't work.
 
