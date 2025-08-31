@@ -71,19 +71,6 @@ def get_client(self) -> genai.Client:
 
   # The two functions and the lambda to insert, no leading indentation
   BEAUTIFUL_JSON_FIX = '''
-# Depending on the 'headless' value, we perform a different kind of click
-click_func = (lambda: element_handle.click(timeout=1_500)) if self.browser_profile.headless else (lambda: click_element_handle(element_handle))
-      
-async def get_element_handle_pos(element_handle: ElementHandle):
-    bounding_box = await element_handle.bounding_box()
-    assert bounding_box
-
-    x, y, width, height = bounding_box.get("x"), bounding_box.get("y"), bounding_box.get("width"), bounding_box.get("height")
-    assert x and y and width and height
-
-    x, y = x + width // 2, y + height // 2
-    return x, y
-
 def clean_response_before_parsing(response: str) -> str:
     # Cleans the raw LLM response string before attempting to parse it as JSON.
     # - Removes markdown code block fences (```json ... ```).
@@ -98,6 +85,22 @@ def clean_response_before_parsing(response: str) -> str:
     # The response might have escaped single quotes from python's repr, which are not valid in JSON
     json_text = json_text.replace("\\\\'", "'")
     return json_text
+
+# --- Helper Functions for Readability ---
+def is_char_escaped(s: str, index: int) -> bool:
+    # Checks if the character at a given index in a string is escaped by a backslash.
+    # Handles multiple preceding backslashes (e.g., "abc\\\\\\"def" -> '\\"' is escaped).
+    if index == 0:
+        return False
+  
+    num_backslashes = 0
+    i = index - 1
+    while i >= 0 and s[i] == '\\\\':
+        num_backslashes += 1
+        i -= 1
+  
+    # If the number of preceding backslashes is odd, the character is escaped.
+    return num_backslashes % 2 == 1
 
 async def click_element_handle(element_handle: ElementHandle):
     # Delaying the import to this point not to have trouble with setxkbmap -print Cannot open display "default display"
