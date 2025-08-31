@@ -40,10 +40,14 @@ If it looks slow, it is because I'm using a small and free LLM and an old comput
 
 This is how you can see for yourself how it works:
 
-Install the package using pip (Python>=3.11):
+Clone this repository and using [uv](https://docs.astral.sh/uv/getting-started/installation/) install the pip package (Python>=3.11):
 
 ```bash
-pip install re-browser-use
+git clone https://github.com/imamousenotacat/re-browser-use
+cd re-browser-use\
+uv venv
+.venv\Scripts\activate
+uv pip install re-browser-use
 ```
 
 Install the browser as described in the [browse-use](https://github.com/browser-use/browser-use) repository.
