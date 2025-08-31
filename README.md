@@ -2,7 +2,7 @@
 
 ___A patched, drop-in replacement for [browser-use](https://github.com/browser-use/browser-use), capable of defeating Cloudflare's verification.___
 
-- this text looks red 
+<code style="color : name_color">text</code>
 
 <span style="color: red; font-weight: bold; font-style: italic;">
 NOTE: It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, this use case is still not being contemplated, so I had to do it myself...
