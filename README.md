@@ -32,7 +32,7 @@ The one below, I think, is a browser-use test that has been long-awaited and sou
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
 ```
 
-![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/captcha_cloudflare.yaml.gif)
+![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/captcha_cloudflare.yaml-post-0.6.1.gif)
 
 If it looks slow, it is because I'm using a small and free LLM and an old computer worth $100. 
 
