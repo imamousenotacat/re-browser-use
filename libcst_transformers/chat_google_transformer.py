@@ -54,7 +54,11 @@ class ChatGoogleTransformer(cst.CSTTransformer):
     target_line = "parsed_data = json.loads(response.text)"
     expr_code = cst.Module([]).code_for_node(original_node.body[0]).strip()
     if expr_code.strip() == target_line.strip():
-      return cst.parse_statement("parsed_data = json.loads(repair_json(clean_response_before_parsing(response.text)))")
+      return cst.FlattenSentinel([
+        # I hate all this addtional manipulations needed with comments. They should be entities on their own ...
+        cst.EmptyLine(comment=cst.Comment("# Parse the JSON text and validate with the Pydantic model")),
+        cst.parse_statement("parsed_data = json.loads(repair_json(clean_response_before_parsing(response.text)))"),
+      ])
 
     return updated_node
 
