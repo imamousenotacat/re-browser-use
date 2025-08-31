@@ -3,20 +3,14 @@
 ___A patched, drop-in replacement for [browser-use](https://github.com/browser-use/browser-use), capable of defeating Cloudflare's verification.___
 
 ```diff
-- NOTE: It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, this use case is still not being contemplated, so I had to do it myself...
+- NOTE: 
+- It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, 
+- this use case is still not being contemplated, so I had to do it myself...
+
 - Pre 0.6.1 versions of this project used to depend on a [tweaked version of patchright](https://github.com/imamousenotacat/re-patchright) but not anymore.
-+ text in green
-! text in orange
-# text in gray
-@@ text in purple (and bold)@@```
 
-<span style="color: red; font-weight: bold; font-style: italic;">
-NOTE: It seems that after getting rid of Playwright and having done an amazing piece of work developing their own event bus and SafeType CDP client, this use case is still not being contemplated, so I had to do it myself...
-
-Pre 0.6.1 versions of this project used to depend on a [tweaked version of patchright](https://github.com/imamousenotacat/re-patchright) but not anymore.
-
-I need to upload new gif files yet. Coming soon...
-</span> 😎
+- I still need to upload new gif files yet. Coming soon... 😎
+```
 
 This little project was created because I was fed up with getting blocked by Cloudflare's verification and I wanted to do things like this with Browser Use:
 
