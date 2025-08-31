@@ -117,7 +117,10 @@ async def get_main_page_from_target(self, target_id: TargetID | None = None) -> 
 
   all_frames, _ = await self.get_all_frames()
 
-  candidate_frame = all_frames[target_id]
+  candidate_frame = all_frames.get(target_id)
+  if candidate_frame == None:
+    return None
+
   while candidate_frame.get('parentId'):
     candidate_frame = all_frames[candidate_frame['parentId']]
 
