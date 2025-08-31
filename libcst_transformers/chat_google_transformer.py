@@ -78,7 +78,6 @@ def get_client(self) -> genai.Client:
     return self.client
 '''
 
-  # The two functions and the lambda to insert, no leading indentation
   BEAUTIFUL_JSON_FIX = '''
 def clean_response_before_parsing(response: str) -> str:
     # Cleans the raw LLM response string before attempting to parse it as JSON.
