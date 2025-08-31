@@ -14,6 +14,8 @@ from libcst_transformers.highlights_transformer import HighlightsTransformer
 from libcst_transformers.dom_serializer_transformer import DomSerializerTransformer
 from libcst_transformers.dom_views_transformer import DomViewsTransformer
 from libcst_transformers.screenshot_watchdog_transformer import ScreenshotWatchdogTransformer
+from libcst_transformers.aboutblank_watchdog_transformer import AboutBlankWatchdogTransformer
+from libcst_transformers.local_browser_watchdog_transformer import LocalBrowserWatchdogTransformer
 from ruamel.yaml import YAML
 from tomlkit import parse, dumps, array, inline_table
 
@@ -50,11 +52,11 @@ def patch_python_file(file_path: str, transformer: cst.CSTTransformer):
 # patch_python_file("tests/ci/conftest.py", ConfTestTransformer())
 # patch_python_file("tests/ci/test_controller.py", TestControllerTransformer())
 # patch_python_file("tests/ci/evaluate_tasks.py", EvaluateTaskTransformer())
-patch_python_file("browser_use/llm/google/chat.py", ChatGoogleTransformer())
+# patch_python_file("browser_use/llm/google/chat.py", ChatGoogleTransformer())
 # patch_python_file("browser_use/mcp/server.py", MCPServerTransformer())
 # patch_python_file("examples/mcp/simple_server.py", SimpleServerTransformer())
-
-# Post 0.6.1 transformers ... (some of them were present in the pre 0.6.1 versions
+#
+# # Post 0.6.1 transformers ... (some of them were present in the pre 0.6.1 versions
 # patch_python_file("browser_use/browser/default_action_watchdog.py", DefaultActionWatchdogTransformer())
 # patch_python_file("browser_use/browser/session.py", BrowserSessionTransformer())
 # patch_python_file("browser_use/dom/debug/highlights.py", HighlightsTransformer())
@@ -62,7 +64,9 @@ patch_python_file("browser_use/llm/google/chat.py", ChatGoogleTransformer())
 # patch_python_file("browser_use/dom/service.py", DomServiceTransformer())
 # patch_python_file("browser_use/dom/views.py", DomViewsTransformer())
 # patch_python_file("browser_use/browser/screenshot_watchdog.py", ScreenshotWatchdogTransformer())
-#
+# patch_python_file("browser_use/browser/aboutblank_watchdog.py", AboutBlankWatchdogTransformer())
+patch_python_file("browser_use/browser/local_browser_watchdog.py", LocalBrowserWatchdogTransformer())
+
 # # Step 1: Parse TOML and replace the dependency ...
 # with open_file("pyproject.toml") as f:
 #   doc = parse(f.read())
