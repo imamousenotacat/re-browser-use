@@ -57,15 +57,15 @@ patch_python_file("browser_use/mcp/server.py", MCPServerTransformer())
 patch_python_file("examples/mcp/simple_server.py", SimpleServerTransformer())
 
 # Post 0.6.1 transformers ... (some of them were present in the pre 0.6.1 versions
-patch_python_file("browser_use/browser/default_action_watchdog.py", DefaultActionWatchdogTransformer())
+patch_python_file("browser_use/browser/watchdogs/default_action_watchdog.py", DefaultActionWatchdogTransformer())
 patch_python_file("browser_use/browser/session.py", BrowserSessionTransformer())
 patch_python_file("browser_use/dom/debug/highlights.py", HighlightsTransformer())
 patch_python_file("browser_use/dom/serializer/serializer.py", DomSerializerTransformer())
 patch_python_file("browser_use/dom/service.py", DomServiceTransformer())
 patch_python_file("browser_use/dom/views.py", DomViewsTransformer())
-patch_python_file("browser_use/browser/screenshot_watchdog.py", ScreenshotWatchdogTransformer())
-patch_python_file("browser_use/browser/aboutblank_watchdog.py", AboutBlankWatchdogTransformer())
-patch_python_file("browser_use/browser/local_browser_watchdog.py", LocalBrowserWatchdogTransformer())
+patch_python_file("browser_use/browser/watchdogs/screenshot_watchdog.py", ScreenshotWatchdogTransformer())
+patch_python_file("browser_use/browser/watchdogs/aboutblank_watchdog.py", AboutBlankWatchdogTransformer())
+patch_python_file("browser_use/browser/watchdogs/local_browser_watchdog.py", LocalBrowserWatchdogTransformer())
 
 # Step 1: Parse TOML and replace the dependency ...
 with open_file("pyproject.toml") as f:
@@ -93,7 +93,7 @@ author["name"] = "Gregor Zunic, patched by github.com/imamousenotacat/"
 authors_arr.append(author)
 authors_arr.multiline(False)
 doc["project"]["authors"] = authors_arr
-doc["project"]["version"] = "0.6.1.1"
+doc["project"]["version"] = "0.6.3"
 
 all_deps = doc["project"]["optional-dependencies"]["all"]
 for i, dep in enumerate(all_deps):

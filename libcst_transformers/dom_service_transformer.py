@@ -4,18 +4,6 @@ from libcst import Assign
 
 class DomServiceTransformer(cst.CSTTransformer):
 
-  def leave_Assign(self, original_node: cst.Assign, updated_node: cst.Assign) -> Assign:
-    if (
-        len(updated_node.targets) == 1
-        and isinstance(updated_node.targets[0].target, cst.Name)
-        and updated_node.targets[0].target.value == "ENABLE_CROSS_ORIGIN_IFRAMES"
-    ):
-      return updated_node.with_changes(
-        value=cst.Name("True")
-      )
-
-    return updated_node
-
   # Kind of hellish but I'm fed up with this crap ...
   def leave_If(self, original_node: cst.If, updated_node: cst.If) -> cst.If:
     # Match the specific if statement with condition float(opacity) <= 0
