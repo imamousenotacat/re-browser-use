@@ -25,12 +25,11 @@ jobs:
         run: |
           git clone https://github.com/browser-use/browser-use --branch 0.7.0
 
-# This time I'm checking beforehand how the tests behave in version 0.7.0 ...
-#      - name: Apply Python Patch
-#        run: |
-#          cp -r ./src/browser-use/. ./browser-use
-#          cp README.md ./browser-use/README.md
-#          python patch-re-browser-use.py
+      - name: Apply Python Patch
+        run: |
+          cp -r ./src/browser-use/. ./browser-use
+          cp README.md ./browser-use/README.md
+          python patch-re-browser-use.py
 
       - name: Upload Patched Browser Use
         uses: actions/upload-artifact@v4
