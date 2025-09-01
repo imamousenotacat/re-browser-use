@@ -25,11 +25,11 @@ jobs:
         run: |
           git clone https://github.com/browser-use/browser-use --branch 0.6.3
 
-#      - name: Apply Python Patch
-#        run: |
-#          cp -r ./src/browser-use/. ./browser-use
-#          cp README.md ./browser-use/README.md
-#          python patch-re-browser-use.py
+      - name: Apply Python Patch
+        run: |
+          cp -r ./src/browser-use/. ./browser-use
+          cp README.md ./browser-use/README.md
+          python patch-re-browser-use.py
 
       - name: Upload Patched Browser Use
         uses: actions/upload-artifact@v4

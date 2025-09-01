@@ -114,8 +114,8 @@ jobs:
 
       # TODO: just depend on the other test.yml action for this instead of re-running the tests here
       # The manipulations the MCP module performs on the loggers were breaking some tests when executed in conjunction
-      # TODO: check Not running the tests for version 0.6.1 because they seem to be broken see run
-      # https://github.com/imamousenotacat/re-browser-use/actions/runs/17333520230 test #110 WITHOUT PATCHES APPLIED
+      # TODO: Not running the tests for version 0.6.3 because they seem to be broken see run
+      # https://github.com/imamousenotacat/re-browser-use/actions/runs/17364793140/ test #114 WITHOUT PATCHES APPLIED
       # - run: uv run pytest tests/ci --ignore=tests/ci/test_mcp_client.py --ignore=tests/ci/test_mcp_server.py # dont push the package to PyPI if the tests fail
 
       # publish to TestPyPI
