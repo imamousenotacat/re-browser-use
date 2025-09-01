@@ -4,7 +4,6 @@ from libcst import Module
 from libcst_transformers.browser_session_transformer import BrowserSessionTransformer
 from libcst_transformers.dom_service_transformer import DomServiceTransformer
 from libcst_transformers.conf_test_transformer import ConfTestTransformer
-from libcst_transformers.test_controller_transformer import TestControllerTransformer
 from libcst_transformers.evaluate_tasks_transformer import EvaluateTaskTransformer
 from libcst_transformers.chat_google_transformer import ChatGoogleTransformer
 from libcst_transformers.mcp_server_transformer import MCPServerTransformer
@@ -50,7 +49,6 @@ def patch_python_file(file_path: str, transformer: cst.CSTTransformer):
 # TODO: MOU14 THESE EXECUTIONS AREN'T IDEMPOTENT FOR THE MOMENT ...
 # Pre 0.6.1 transformers still valid
 patch_python_file("tests/ci/conftest.py", ConfTestTransformer())
-patch_python_file("tests/ci/test_controller.py", TestControllerTransformer())
 patch_python_file("tests/ci/evaluate_tasks.py", EvaluateTaskTransformer())
 patch_python_file("browser_use/llm/google/chat.py", ChatGoogleTransformer())
 patch_python_file("browser_use/mcp/server.py", MCPServerTransformer())
@@ -103,9 +101,10 @@ doc["project"]["optional-dependencies"]["all"] = all_deps
 
 doc["project"]["urls"]["Repository"] = "https://github.com/imamousenotacat/re-browser-use"
 
-scripts = doc["project"]["scripts"]
-scripts["re-browseruse"] = scripts.pop("browseruse")
-scripts[PROJECT_NAME] = scripts.pop("browser-use")
+# Disappeared in 0.7.0 ???
+# scripts = doc["project"]["scripts"]
+# scripts["re-browseruse"] = scripts.pop("browseruse")
+# scripts[PROJECT_NAME] = scripts.pop("browser-use")
 
 # Step 2: Dump TOML back to string (preserving formatting)
 new_content = dumps(doc)
