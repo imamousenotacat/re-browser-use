@@ -27,7 +27,12 @@ async def _system_click_element_node_impl(self, element_node, while_holding_ctrl
         bounding_box = element_node.absolute_position
         x, y, width, height = bounding_box.x, bounding_box.y, bounding_box.width, bounding_box.height
         assert x and y and width and height
-        center_x, center_y = x + width // 2, y + height // 2
+
+        # Just in case adding some randomness (I don't think it's really useful but who knows ...)
+        import random
+        margin_x, margin_y = width * 0.1, height * 0.1
+        center_x = random.randint(int(x + margin_x), int(x + width - margin_x))
+        center_y = random.randint(int(y + margin_y), int(y + height - margin_y))
 
         async_input = await AsyncInput(pid = self.browser_session._local_browser_watchdog._subprocess.pid) # type: ignore
         await async_input.click("left", center_x, center_y)

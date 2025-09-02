@@ -23,6 +23,7 @@ def create_stealth_browser_session(headless: bool = False) -> BrowserSession:
       # Both options below are needed to pass Cloudflare challenge
       disable_security=False,
       cross_origin_iframes=True,
+      highlight_elements=True
     )
   )
 

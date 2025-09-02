@@ -20,6 +20,7 @@ async def main():
         # Both options below are needed to pass Cloudflare challenge
         disable_security=False,
         cross_origin_iframes=True,
+        highlight_elements=True
       )
     )
   )

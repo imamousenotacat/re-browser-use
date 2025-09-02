@@ -16,6 +16,7 @@ from libcst_transformers.dom_views_transformer import DomViewsTransformer
 from libcst_transformers.screenshot_watchdog_transformer import ScreenshotWatchdogTransformer
 from libcst_transformers.aboutblank_watchdog_transformer import AboutBlankWatchdogTransformer
 from libcst_transformers.local_browser_watchdog_transformer import LocalBrowserWatchdogTransformer
+from libcst_transformers.dom_watchdog_transformer import DomWatchdogTransformer
 from ruamel.yaml import YAML
 from tomlkit import parse, dumps, array, inline_table
 
@@ -56,7 +57,7 @@ patch_python_file("browser_use/llm/google/chat.py", ChatGoogleTransformer())
 patch_python_file("browser_use/mcp/server.py", MCPServerTransformer())
 patch_python_file("examples/mcp/simple_server.py", SimpleServerTransformer())
 
-# Post 0.6.1 transformers ... (some of them were present in the pre 0.6.1 versions
+# # Post 0.6.1 transformers ... (some of them were present in the pre 0.6.1 versions
 patch_python_file("browser_use/browser/watchdogs/default_action_watchdog.py", DefaultActionWatchdogTransformer())
 patch_python_file("browser_use/browser/session.py", BrowserSessionTransformer())
 patch_python_file("browser_use/dom/debug/highlights.py", HighlightsTransformer())
@@ -66,6 +67,7 @@ patch_python_file("browser_use/dom/views.py", DomViewsTransformer())
 patch_python_file("browser_use/browser/watchdogs/screenshot_watchdog.py", ScreenshotWatchdogTransformer())
 patch_python_file("browser_use/browser/watchdogs/aboutblank_watchdog.py", AboutBlankWatchdogTransformer())
 patch_python_file("browser_use/browser/watchdogs/local_browser_watchdog.py", LocalBrowserWatchdogTransformer())
+patch_python_file("browser_use/browser/watchdogs/dom_watchdog.py", DomWatchdogTransformer())
 
 # Step 1: Parse TOML and replace the dependency ...
 with open_file("pyproject.toml") as f:

@@ -92,6 +92,7 @@ async def main():
       browser_profile=BrowserProfile(
         headless=False,
         cross_origin_iframes=True,
+        highlight_elements=True
       )
     )
   )
