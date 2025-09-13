@@ -30,6 +30,7 @@ def create_stealth_browser_session(headless: bool = False) -> BrowserSession:
 
 def create_stealth_agent(task: str, llm: BaseChatModel, browser_session: BrowserSession) -> Agent:
   return Agent(
+    use_vision=False,
     task=task,
     llm=llm,
     browser_session=browser_session

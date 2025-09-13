@@ -136,3 +136,18 @@ async def get_main_page_from_target(self, target_id: TargetID | None = None) -> 
       return updated_node.with_changes(body=updated_node.body.with_changes(body=new_body))
 
     return updated_node
+
+  def leave_Assign(self, original_node: cst.Assign, updated_node: cst.Assign) -> cst.Assign:
+    # Ensure target is exactly "domains = ..."
+    if (len(updated_node.targets) == 1 and isinstance(updated_node.targets[0].target, cst.Name) and updated_node.targets[0].target.value == "domains"
+        and isinstance(updated_node.value, cst.BooleanOperation) and isinstance(updated_node.value.right, cst.List)):
+      # Remove Runtime from the list ...
+      new_elements = list(updated_node.value.right.elements)
+      new_elements.remove(next(el for el in new_elements if el.value.value.strip("'\"") == "Runtime"))
+      return updated_node.with_changes(
+        value=updated_node.value.with_changes(
+          right=updated_node.value.right.with_changes(elements=new_elements)
+        )
+      )
+
+    return updated_node

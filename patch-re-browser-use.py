@@ -10,7 +10,7 @@ from libcst_transformers.chat_google_transformer import ChatGoogleTransformer
 from libcst_transformers.mcp_server_transformer import MCPServerTransformer
 from libcst_transformers.simple_server_transformer import SimpleServerTransformer
 from libcst_transformers.default_action_watchdog_transformer import DefaultActionWatchdogTransformer
-from libcst_transformers.highlights_transformer import HighlightsTransformer
+# from libcst_transformers.highlights_transformer import HighlightsTransformer
 from libcst_transformers.dom_serializer_transformer import DomSerializerTransformer
 from libcst_transformers.dom_views_transformer import DomViewsTransformer
 from libcst_transformers.screenshot_watchdog_transformer import ScreenshotWatchdogTransformer
@@ -60,7 +60,6 @@ patch_python_file("examples/mcp/simple_server.py", SimpleServerTransformer())
 # # Post 0.6.1 transformers ... (some of them were present in the pre 0.6.1 versions
 patch_python_file("browser_use/browser/watchdogs/default_action_watchdog.py", DefaultActionWatchdogTransformer())
 patch_python_file("browser_use/browser/session.py", BrowserSessionTransformer())
-patch_python_file("browser_use/dom/debug/highlights.py", HighlightsTransformer())
 patch_python_file("browser_use/dom/serializer/serializer.py", DomSerializerTransformer())
 patch_python_file("browser_use/dom/service.py", DomServiceTransformer())
 patch_python_file("browser_use/dom/views.py", DomViewsTransformer())

@@ -19,12 +19,13 @@ async def test_nopecha(llm):
   # From https://github.com/browser-use/browser-use/blob/main/docs/customize/real-browser.mdx#method-b-connect-using-existing-playwright-objects
   # Another way of cutting Gordian knots and simplify as much as I can while adapting to the convoluted initialization process ...
   agent = Agent(
+    use_vision=False,
     task=(
       # I've had to modify this because I saw this thought:
       # "I was not able to complete the captcha challenge on the cloudflare demo page. I clicked on the wrong element and was redirected to the main demo page.
       # Therefore, the task was not fully completed."
-      "Go to https://nopecha.com/demo/cloudflare, and always wait 10 seconds for the verification checkbox to appear."
-      "Once it appears, click it once, and wait 5 more seconds. That’s all. Your job is done. Don't check anything. If you get redirected, don’t worry."
+      "Go to https://nopecha.com/demo/cloudflare, wait for the verification checkbox to appear, click it once, and wait for 10 seconds."
+      "That’s all. If you get redirected, don’t worry."
     ),
     llm=llm,
     browser_session=BrowserSession(
