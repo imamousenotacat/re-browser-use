@@ -94,7 +94,7 @@ author["name"] = "Gregor Zunic, patched by github.com/imamousenotacat/"
 authors_arr.append(author)
 authors_arr.multiline(False)
 doc["project"]["authors"] = authors_arr
-doc["project"]["version"] = "0.7.2"
+doc["project"]["version"] = "0.7.3"
 
 all_deps = doc["project"]["optional-dependencies"]["all"]
 for i, dep in enumerate(all_deps):

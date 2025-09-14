@@ -106,7 +106,7 @@ If you want to run the same code with _"regular"_ browser-use to compare the res
 
 ```bash
 uv pip uninstall re-browser-use
-uv pip install browser-use==0.7.2 # This is the last version I've patched so far
+uv pip install browser-use==0.7.3 # This is the last version I've patched so far
 ```
 
 Now run again the script
