@@ -1,6 +1,6 @@
 [project]
 name = "re-browser-use"
-version = "0.7.5"
+version = "0.7.6"
 requires-python = ">=3.11,<4.0"
 
 # Packages needed to execute the patch
