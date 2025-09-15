@@ -30,8 +30,10 @@ The one below, I think, is a browser-use test that has been long-awaited and sou
 
 ```diff
 - NOTE:
-- This test captcha_cloudflare.yaml was removed in version 0.7.6. The browser-use team seems fixated on not addressing the Cloudflare challenge. 😲
-- I got it restored here. If you apply the patch using the commands in .github/workflows/apply-patches.yaml, you can get it back and execute it. 
+- This test captcha_cloudflare.yaml was removed in version 0.7.6. The browser-use team seems fixated 
+- on not addressing the Cloudflare challenge 😲. I got it restored here. If you apply the patch 
+- using the commands in .github/workflows/apply-patches.yaml, you can get it back and succesfully 
+- execute it. 
 ```
 
 ```bash
