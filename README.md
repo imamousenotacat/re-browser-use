@@ -24,23 +24,23 @@ python examples\nopecha_cloudflare_no_playwright.py
 I have added OS-level clicks in headful mode to enable the use of ProtonVPN. Once again, credit goes to [Vinyzu](https://github.com/Vinyzu), 
 as I used a pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project for this.
 
-I restored and slightly improved the JavaScript highlighting system that was removed in version 0.7.1. I find it extremely useful for my use case.
+I restored the JavaScript highlighting system that was removed in version 0.7.1. I find it extremely useful for my use case.
 
 The one below, I think, is a browser-use test that has been long-awaited and sought after for quite a while 😜:
-
-```diff
-- NOTE:
-- This test captcha_cloudflare.yaml was removed in version 0.7.6. The browser-use team seems fixated 
-- on not addressing the Cloudflare challenge 😲. I got it restored here. If you apply the patch 
-- using the commands in .github/workflows/apply-patches.yaml, you can get it back and successfully 
-- execute it. 
-```
 
 ```bash
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
 ```
 
 ![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/captcha_cloudflare.yaml-post-0.6.1.gif)
+
+```diff
+- NOTE:
+- This test, captcha_cloudflare.yaml, was removed in version 0.7.6. The browser-use team seems fixated 
+- on not addressing the Cloudflare challenge 😲. I got it restored here. If you apply the patch 
+- using the commands in .github/workflows/apply-patches.yaml, you can get it back and successfully 
+- execute it. 
+```
 
 If it looks slow, it is because I'm using a small and free LLM and an old computer worth $100. 
 
