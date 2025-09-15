@@ -47,3 +47,5 @@ tmp
 /browser-use
 node_modules
 package-lock.json
+
+.artifacts/

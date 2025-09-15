@@ -19,36 +19,46 @@ class DefaultActionWatchdogTransformer(cst.CSTTransformer):
     new_function_code = '''
 # TODO: MOU14 Implement while_holding_ctrl ...
 async def _system_click_element_node_impl(self, element_node, while_holding_ctrl: bool = False) -> dict | None:
-    """Perform OS level mouse left click ..."""
-    # Delaying the import to this point not to have trouble with setxkbmap -print Cannot open display "default display"
-    from cdp_patches.input import AsyncInput
-    try:
-        # The coordinates you need are already in the field absolute_position for the node ...
-        bounding_box = element_node.absolute_position
-        x, y, width, height = bounding_box.x, bounding_box.y, bounding_box.width, bounding_box.height
-        assert x and y and width and height
+  """Perform OS level mouse left click ..."""
+  # Delaying the import to this point not to have trouble with setxkbmap -print Cannot open display "default display"
+  from cdp_patches.input import AsyncInput
+  try:
+    # The absolute_position gives viewport-relative coordinates in CSS pixels.
+    # These need to be scaled by the zoom factor to get device pixels for clicking.
+    bounding_box = element_node.absolute_position
+    x, y, width, height = bounding_box.x, bounding_box.y, bounding_box.width, bounding_box.height
+    assert x is not None and y is not None and width is not None and height is not None
 
-        # Just in case adding some randomness (I don't think it's really useful but who knows ...)
-        import random
-        margin_x, margin_y = width * 0.1, height * 0.1
-        center_x = random.randint(int(x + margin_x), int(x + width - margin_x))
-        center_y = random.randint(int(y + margin_y), int(y + height - margin_y))
+    # Get zoom factor (device pixel ratio * page zoom)
+    assert self.browser_session.agent_focus is not None
+    metrics = await self.browser_session.agent_focus.cdp_client.send.Page.getLayoutMetrics(session_id=self.browser_session.agent_focus.session_id)
 
-        async_input = await AsyncInput(pid = self.browser_session._local_browser_watchdog._subprocess.pid) # type: ignore
-        await async_input.click("left", center_x, center_y)
+    visual_viewport = metrics.get('visualViewport', {})
+    css_visual_viewport = metrics.get('cssVisualViewport', {})
 
-        self.logger.debug(f'🖱️ Clicked successfully using x=[{center_x}],y=[{center_y}] coordinates ...')
-        # Return coordinates as dict for metadata
-        return {"click_x": center_x, "click_y": center_y}
-    except Exception as e:
-        # Extract key element info for error message
-        element_info = f'<{element_node.tag_name or "unknown"}'
-        if element_node.element_index:
-            element_info += f' index={element_node.element_index}'
-        element_info += '>'
-        raise Exception(
-            f'<llm_error_msg>Failed to click element {element_info}. The element may not be interactable or visible. {type(e).__name__}: {e}</llm_error_msg>'
-        )
+    device_width = visual_viewport.get('clientWidth', 1)
+    css_width = css_visual_viewport.get('clientWidth', 1)
+    zoom_factor = device_width / css_width if css_width > 0 else 1.0
+
+    # Computing the center of the element in viewport-relative CSS pixels and convert to device pixels by applying zoom.
+    center_x = (x + width / 2) * zoom_factor
+    center_y = (y + height / 2) * zoom_factor
+
+    async_input = await AsyncInput(pid=self.browser_session._local_browser_watchdog._subprocess.pid) # type: ignore
+    await async_input.click("left", center_x, center_y)
+
+    self.logger.debug(f'🖱️ Clicked successfully using x=[{center_x:.2f}],y=[{center_y:.2f}] (zoom: {zoom_factor:.2f}) ...')
+    # Return coordinates as dict for metadata
+    return {"click_x": center_x, "click_y": center_y}
+  except Exception as e:
+    # Extract key element info for error message
+    element_info = f'<{element_node.tag_name or "unknown"}'
+    if element_node.element_index:
+      element_info += f' index={element_node.element_index}'
+    element_info += '>'
+    raise Exception(
+        f'<llm_error_msg>Failed to click element {element_info}. The element may not be interactable or visible. {type(e).__name__}: {e}</llm_error_msg>'
+    )
 '''
 
     # To include the header you must do it like this

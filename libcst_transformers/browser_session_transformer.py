@@ -109,7 +109,7 @@ class BrowserSessionTransformer(cst.CSTTransformer):
     return updated_node
 
   method_code = '''
-async def get_main_page_from_target(self, target_id: TargetID | None = None) -> TargetID:
+async def get_main_page_from_target(self, target_id: TargetID | None = None) -> TargetID | None:
   """Get the main page corresponding to a target_id ."""
   assert self.agent_focus is not None, 'CDP session not initialized - browser may not be connected yet'
   if target_id is None:
