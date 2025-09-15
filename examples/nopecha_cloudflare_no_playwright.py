@@ -18,10 +18,10 @@ async def main():
     browser_session=BrowserSession(
       browser_profile=BrowserProfile(
         headless=False,
-        # Both options below are needed to pass Cloudflare challenge
+        highlight_elements=True,
+        # Both options below need to be set to these values to pass Cloudflare challenge
         disable_security=False,
-        cross_origin_iframes=True,
-        highlight_elements=True
+        cross_origin_iframes=True
       )
     )
   )
