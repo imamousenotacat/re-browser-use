@@ -41,6 +41,7 @@ def convert_dom_selector_map_to_highlight_format(selector_map: DOMSelectorMap) -
 				'text_content': node.get_all_children_text()[:50]
 				if hasattr(node, 'get_all_children_text')
 				else node.node_value[:50],
+				'reasoning': node.reasoning if hasattr(node, 'reasoning') else {},
 			}
 
 			elements.append(element)
@@ -78,6 +79,17 @@ async def remove_highlighting_script(dom_service: DomService) -> None:
 			// Final cleanup - remove any orphaned tooltips
 			const orphanedTooltips = document.querySelectorAll('[data-browser-use-highlight="tooltip"]');
 			orphanedTooltips.forEach(el => el.remove());
+
+			// Remove scroll/resize listeners and cleanup functions
+			if (window._browserUseThrottledUpdate) {
+				window.removeEventListener('scroll', window._browserUseThrottledUpdate, true);
+				window.removeEventListener('resize', window._browserUseThrottledUpdate);
+				delete window._browserUseThrottledUpdate;
+			}
+			if (window._browserUseHighlightUpdaters) {
+				// This also serves as a flag to stop any pending updates
+				delete window._browserUseHighlightUpdaters;
+			}
 		})();
 		"""
 
@@ -168,6 +180,27 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 				if (styles) element.style.cssText = styles;
 				return element;
 			}}
+
+			// Helper function to find an element by XPath, searching through all frames
+			function findElementByXPath(xpath) {{
+				const contexts = [];
+				// Recursively collect all accessible frame documents
+				function collectFrameDocs(win) {{
+					try {{
+						contexts.push(win.document);
+						for (let i = 0; i < win.frames.length; i++) {{
+							collectFrameDocs(win.frames[i]); // Recurse into sub-frames
+						}}
+					}} catch (e) {{ /* Ignore cross-origin frames/windows */ }}
+				}}
+				collectFrameDocs(window.top);
+
+				for (const context of contexts) {{
+					const result = context.evaluate(xpath, context, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+					if (result) return result;
+				}}
+				return null;
+			}}
 			
 			// Add enhanced highlights with detailed tooltips
 			interactiveElements.forEach((element, index) => {{
@@ -183,7 +216,7 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 					outline: 2px solid #4a90e2;
 					outline-offset: -2px;
 					background: transparent;
-					pointer-events: none;
+					pointer-events: none; /* Let clicks pass through to the underlying element */
 					box-sizing: content-box;
 					transition: outline 0.2s ease;
 					margin: 0;
@@ -210,6 +243,8 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 					outline: none;
 					margin: 0;
 					line-height: 1.2;
+					pointer-events: auto; /* This is crucial for the label to be hoverable */
+					cursor: pointer; /* Indicate that the label is interactive */					
 				`);
 				
 				// Enhanced tooltip with detailed reasoning (CSP-safe)
@@ -360,19 +395,19 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 				// Set highlight colors based on confidence (outline only)
 				highlight.style.outline = `2px solid ${{outlineColor}}`;
 				label.style.backgroundColor = outlineColor;
-				
-				// Add subtle hover effects (outline only, no background)
-				highlight.addEventListener('mouseenter', () => {{
-					highlight.style.outline = '3px solid #ff6b6b';
+
+				// Add hover effects to the LABEL, so the highlight itself doesn't block clicks.
+				label.addEventListener('mouseenter', () => {{
+					highlight.style.outline = `3px solid ${'{'}shadowColor{'}'}`;
 					highlight.style.outlineOffset = '-1px';
 					tooltip.style.opacity = '1';
 					tooltip.style.visibility = 'visible';
-					label.style.backgroundColor = '#ff6b6b';
-					label.style.transform = 'scale(1.1)';
+					label.style.backgroundColor = shadowColor;
+					label.style.transform = 'scale(1.1) translateY(-1px)';
 				}});
 				
-				highlight.addEventListener('mouseleave', () => {{
-					highlight.style.outline = `2px solid ${{outlineColor}}`;
+				label.addEventListener('mouseleave', () => {{
+					highlight.style.outline = `2px solid ${'{'}outlineColor{'}'}`;
 					highlight.style.outlineOffset = '-2px';
 					tooltip.style.opacity = '0';
 					tooltip.style.visibility = 'hidden';
@@ -383,11 +418,84 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 				highlight.appendChild(tooltip);
 				highlight.appendChild(label);
 				container.appendChild(highlight);
+
+				// --- Logic to keep highlight attached to element on scroll/resize ---
+				try {{
+					// Find the original DOM element using its XPath, searching across all frames
+					const originalElement = findElementByXPath(element.xpath);
+					
+					if (originalElement) {{
+						const updatePosition = () => {{
+							let offsetX = 0;
+							let offsetY = 0;
+							let currentWindow = originalElement.ownerDocument.defaultView;
+
+							// If the element is inside iframe(s), calculate the total offset
+							try {{
+								while (currentWindow !== window.top) {{
+									const frame = currentWindow.frameElement;
+									if (!frame) break; // Safety break
+									const frameRect = frame.getBoundingClientRect();
+									offsetX += frameRect.left;
+									offsetY += frameRect.top;
+									currentWindow = currentWindow.parent;
+								}}
+							}} catch (e) {{
+								// This will fail on cross-origin iframes. In that case, we can't reliably
+								// update the position, so we'll hide the highlight.
+								console.warn('Cross-origin iframe detected. Hiding highlight for:', element.xpath);
+								highlight.style.display = 'none';
+								return;
+							}}
+
+							const rect = originalElement.getBoundingClientRect();
+							if (rect.width === 0 || rect.height === 0) {{
+								highlight.style.display = 'none';
+							}} else {{
+								highlight.style.display = 'block';
+								highlight.style.left = `${'{'}rect.left + offsetX{'}'}px`;
+								highlight.style.top = `${'{'}rect.top + offsetY{'}'}px`;
+								highlight.style.width = `${'{'}rect.width{'}'}px`;
+								highlight.style.height = `${'{'}rect.height{'}'}px`;
+							}}
+						}};
+						// Store the updater function to be called on scroll/resize
+						(window._browserUseHighlightUpdaters = window._browserUseHighlightUpdaters || []).push(updatePosition);
+					}} else {{
+						console.warn('Could not find original element for highlight update. XPath:', element.xpath);
+					}}
+				}} catch (e) {{
+					console.warn('Could not find or create updater for element with xpath:', element.xpath, e);
+				}}
+
 			}});
 			
 			// Add container to document
 			document.body.appendChild(container);
-			
+
+			// --- Add scroll and resize listeners to run all position updaters ---
+			const throttleFunction = (func, delay) => {{
+				let lastCall = 0;
+				return (...args) => {{
+					const now = performance.now();
+					if (now - lastCall < delay) return;
+					lastCall = now;
+					return func(...args);
+				}};
+			}};
+
+			const runAllUpdaters = () => {{
+				if (window._browserUseHighlightUpdaters) {{
+					window._browserUseHighlightUpdaters.forEach(fn => fn());
+				}}
+			}};
+
+			// Store throttled function on window to allow for proper removal
+			window._browserUseThrottledUpdate = throttleFunction(runAllUpdaters, 16); // ~60fps
+
+			window.addEventListener('scroll', window._browserUseThrottledUpdate, true);
+			window.addEventListener('resize', window._browserUseThrottledUpdate);
+						
 			console.log('Highlighting complete');
 		}})();
 		"""
