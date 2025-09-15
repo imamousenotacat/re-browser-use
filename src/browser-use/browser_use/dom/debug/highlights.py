@@ -423,7 +423,7 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 				try {{
 					// Find the original DOM element using its XPath, searching across all frames
 					const originalElement = findElementByXPath(element.xpath);
-					
+
 					if (originalElement) {{
 						const updatePosition = () => {{
 							let offsetX = 0;
@@ -495,7 +495,7 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 
 			window.addEventListener('scroll', window._browserUseThrottledUpdate, true);
 			window.addEventListener('resize', window._browserUseThrottledUpdate);
-						
+
 			console.log('Highlighting complete');
 		}})();
 		"""
