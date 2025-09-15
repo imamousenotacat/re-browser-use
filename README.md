@@ -19,12 +19,12 @@ This little project was created because I was fed up with getting blocked by Clo
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_no_playwright.py.gif)
+![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_no_playwright.py-0.7.7.gif)
 
 I have added OS-level clicks in headful mode to enable the use of ProtonVPN. Once again, credit goes to [Vinyzu](https://github.com/Vinyzu), 
 as I used a pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project for this.
 
-I restored, and I think slightly improved as well, the Javascript highlighting system that was removed in version .I find it extremely useful for my use case
+I restored and slightly improved the JavaScript highlighting system that was removed in version 0.7.1. I find it extremely useful for my use case.
 
 The one below, I think, is a browser-use test that has been long-awaited and sought after for quite a while 😜:
 
