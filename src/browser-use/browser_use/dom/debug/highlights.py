@@ -244,7 +244,7 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 					margin: 0;
 					line-height: 1.2;
 					pointer-events: auto; /* This is crucial for the label to be hoverable */
-					cursor: pointer; /* Indicate that the label is interactive */					
+					cursor: pointer; /* Indicate that the label is interactive */
 				`);
 				
 				// Enhanced tooltip with detailed reasoning (CSP-safe)
@@ -396,18 +396,18 @@ async def inject_highlighting_script(dom_service: DomService, interactive_elemen
 				highlight.style.outline = `2px solid ${{outlineColor}}`;
 				label.style.backgroundColor = outlineColor;
 
-				// Add hover effects to the LABEL, so the highlight itself doesn't block clicks.
+				// Add subtle hover effects (outline only, no background) to the LABEL, so the highlight itself doesn't block clicks.
 				label.addEventListener('mouseenter', () => {{
-					highlight.style.outline = `3px solid ${'{'}shadowColor{'}'}`;
+					highlight.style.outline = '3px solid #ff6b6b';
 					highlight.style.outlineOffset = '-1px';
 					tooltip.style.opacity = '1';
 					tooltip.style.visibility = 'visible';
-					label.style.backgroundColor = shadowColor;
+					label.style.backgroundColor = '#ff6b6b';
 					label.style.transform = 'scale(1.1) translateY(-1px)';
 				}});
 				
 				label.addEventListener('mouseleave', () => {{
-					highlight.style.outline = `2px solid ${'{'}outlineColor{'}'}`;
+					highlight.style.outline = `2px solid ${{outlineColor}}`;
 					highlight.style.outlineOffset = '-2px';
 					tooltip.style.opacity = '0';
 					tooltip.style.visibility = 'hidden';
