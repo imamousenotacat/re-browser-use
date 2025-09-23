@@ -24,9 +24,9 @@ python examples\nopecha_cloudflare_no_playwright.py
 I have added OS-level clicks in headful mode to enable the use of ProtonVPN. Once again, credit goes to [Vinyzu](https://github.com/Vinyzu),
 as I used a pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project for this.
 
-I restored the JavaScript highlighting system that was removed in version 0.7.1. I find it extremely useful for my use case.
+_**I restored and made more solid the JavaScript highlighting system that was removed in version 0.7.1.**_ I find it extremely useful for my use case.
 
-The one below, I think, is a browser-use test that has been long-awaited and sought after for quite a while 😜:
+The one below is a long-awaited browser-use test that was chased for quite a while 😜:
 
 ```bash
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
@@ -133,8 +133,6 @@ With the current versions of browser-use, this still won't work.
 
 I don't want to ruffle any feathers, but we, humble but rebellious mice 😜, don't like signing CLAs or working for free for someone who, 
 [by their own admission](https://browser-use.com/careers), is here to "dominate". I do this just for fun. 
-
-Besides, the code provided by this patch won't work if it's not accompanied by [re-patchright-python](https://github.com/imamousenotacat/re-patchright-python).
 
 I just wanted to make this work public. If someone finds this useful, they can incorporate it into their own projects. 
 
