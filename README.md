@@ -32,7 +32,7 @@ The one below is a long-awaited browser-use test that was chased for quite a whi
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
 ```
 
-![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/temporary-dev/images/nopecha_cloudflare_no_playwright.py-0.7.7.1.gif)
+![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/temporary-dev/images/captcha_cloudflare.yaml-post-0.7.7.1.gif)
 
 ```diff
 - NOTE:
