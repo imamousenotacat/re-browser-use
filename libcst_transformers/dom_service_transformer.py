@@ -47,6 +47,22 @@ class DomServiceTransformer(cst.CSTTransformer):
       new_test = cst.parse_expression("width >= 1 and height >= 1")
       return updated_node.with_changes(test=new_test)
 
+    if (
+        "frame.node_type == NodeType.ELEMENT_NODE" in condition_code
+        and "and (frame.node_name.upper() == 'IFRAME' or frame.node_name.upper() == 'FRAME')" in condition_code
+        and "frame.snapshot_node" in condition_code
+        and "frame.snapshot_node.bounds" in condition_code
+    ):
+      # THIS IS THE QUICKEST BUT DIRTIEST METHOD TO GET THE IF EXACTLY THE WAY I WANT IT ...
+      replacement= '''(
+        frame.node_type == NodeType.ELEMENT_NODE
+        and (frame.node_name.upper() == 'IFRAME' or frame.node_name.upper() == 'FRAME')
+        and frame.snapshot_node
+        and frame.snapshot_node.bounds
+        and frame != node # It's a little bit stupid adding the coordinates to itself and it was happening ...
+  )'''
+      return updated_node.with_changes(test=cst.parse_expression(replacement))
+
     return updated_node
 
   def leave_Comment(self, original_node: cst.Comment, updated_node: cst.Comment) -> cst.Comment:

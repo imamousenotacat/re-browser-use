@@ -19,7 +19,7 @@ This little project was created because I was fed up with getting blocked by Clo
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/temporary-dev/images/nopecha_cloudflare_no_playwright.py-0.7.7.gif)
+![nopecha_cloudflare.py](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/temporary-dev/images/nopecha_cloudflare_no_playwright.py-0.7.7.1.gif)
 
 I have added OS-level clicks in headful mode to enable the use of ProtonVPN. Once again, credit goes to [Vinyzu](https://github.com/Vinyzu),
 as I used a pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project for this.
@@ -32,7 +32,7 @@ The one below is a long-awaited browser-use test that was chased for quite a whi
 python tests/ci/evaluate_tasks.py --task tests/agent_tasks/captcha_cloudflare.yaml
 ```
 
-![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/captcha_cloudflare.yaml-post-0.6.1.gif)
+![captcha_cloudflare.yaml](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/temporary-dev/images/nopecha_cloudflare_no_playwright.py-0.7.7.1.gif)
 
 ```diff
 - NOTE:
@@ -125,7 +125,7 @@ Now run again the script
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_no_playwright.py.KO.gif)
+![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/temporary-dev/images/nopecha_cloudflare_no_playwright.py.KO-0.7.7.1.gif)
 
 With the current versions of browser-use, this still won't work.
 
