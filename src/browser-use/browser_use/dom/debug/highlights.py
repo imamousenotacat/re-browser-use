@@ -149,7 +149,7 @@ HIGHLIGHTING_REMOVAL_JS = """
 
 async def inject_highlighting_script(dom_service: DomService, interactive_elements: DOMSelectorMap) -> None:
 	"""Inject JavaScript to highlight interactive elements with detailed hover tooltips that work around CSP restrictions."""
-	# Quick and dirty solution to filter already present highlighting elements...
+	# Quick and dirty solution to filter already present highlighting elements (if any) ...
 	interactive_elements= filter_highlighted_elements(interactive_elements)
 
 	if not interactive_elements:
@@ -245,13 +245,13 @@ def _get_main_page_target_id(all_frames_with_cdp_session):
 
 
 def filter_highlighted_elements(interactive_elements: DOMSelectorMap) -> DOMSelectorMap:
-	# In reality all these 'data-browser-use-highlight' are remanents in the DOM of previous executions ...
-  # TODO: ?? I think that, if needed, they could be removed when constructing the DOM tree in get_dom_tree ...
+	# In reality all these 'data-browser-use-highlight' are remanents in the DOM of previous executions that should not be there
+	# because now they are ignored when constructing the DOM tree in get_dom_tree ...
 	filtered_items = [node for node in interactive_elements.values() if 'data-browser-use-highlight' not in node.attributes]
 	logger.debug(f"Filtered out [{len(interactive_elements) - len(filtered_items)}] 'data-browser-use-highlight' elements that were in DOMSelectorMap ...")
 	return {i+1: node for i, node in enumerate(filtered_items)}
 
-#  This humongous horror in the middle of a function was making me cry...
+#  This humongous horror in the middle of a function was making me cry ...
 def make_script(converted_elements):
 	return f"""
 function(...args) {{
