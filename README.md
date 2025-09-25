@@ -125,7 +125,7 @@ Now run again the script
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_no_playwright.py.KO-0.7.7.1.gif)
+![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_no_playwright.py.KO-0.7.9.gif)
 
 With the current versions of browser-use, this still won't work.
 
