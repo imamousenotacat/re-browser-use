@@ -11,6 +11,14 @@ def llm():
   return create_llm()
 
 
+page_titles = []
+
+
+async def titles_accumulator_hook(agent: Agent):
+  current_page_title = await agent.browser_session.get_current_page_title()
+  page_titles.append(current_page_title)
+
+
 @pytest.mark.asyncio
 async def test_nopecha(llm):
   """
@@ -40,15 +48,15 @@ async def test_nopecha(llm):
   )
 
   # Usually 5 steps are enough, but I think there was a bug creating problems with the evaluation of the last action
-  history: AgentHistoryList = await agent.run(10)
+  history: AgentHistoryList = await agent.run(max_steps=10, on_step_end=titles_accumulator_hook)
   result = history.final_result()
 
   # Printing the final result and assessing it...
   print(f'FINAL RESULT: {result}')
   assert history.is_done() and history.is_successful()
 
-  # TODO: Checking the results of the click. It can't be done like this anymore. When this point is reached the browser is closed
-  # current_title = await agent.browser_session.get_current_page_title()
-  # assert current_title == "NopeCHA - CAPTCHA Demo"
+  # Checking the results of the click. I'm using this: https://github.com/browser-use/browser-use/blob/main/docs/customize/hooks.mdx
+  current_title = page_titles[-1]
+  assert current_title == "NopeCHA - CAPTCHA Demo"
   # await browser.close()  Closing the browser => NOT NEEDED ANYMORE ...
   # await browser_context.close() => IT WAS MAKING THE TEST FAIL ...
