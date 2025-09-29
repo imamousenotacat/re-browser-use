@@ -4,79 +4,33 @@ from libcst import matchers as m
 
 class ChatGoogleTransformer(cst.CSTTransformer):
 
-  def leave_Module(self, original_node: cst.Module, updated_node: cst.Module) -> cst.Module:
-    new_body = []
-    for stmt in updated_node.body:
-      # Insert import logging after import json once
-      if (
-          isinstance(stmt, cst.SimpleStatementLine)
-          and len(stmt.body) == 1
-          and isinstance(stmt.body[0], cst.Import)
-          and any(alias.name.value == "json" for alias in stmt.body[0].names)
-      ):
-        new_body.append(stmt)
-        import_logging = cst.SimpleStatementLine(
-          body=[cst.Import(names=[cst.ImportAlias(name=cst.Name("logging"))])]
-        )
-        new_body.append(import_logging)
-        continue
-      # Insert logger assignment before the target function definition once
-      if (
-          isinstance(stmt, cst.FunctionDef)
-          and stmt.name.value == "_is_retryable_error"
-      ):
-        logger_assign = cst.parse_statement(
-          "\nlogger = logging.getLogger(__name__)"
-        )
-        new_body.append(logger_assign)
-
-      new_body.append(stmt)
-
-    return updated_node.with_changes(body=new_body)
-
   def leave_SimpleStatementLine(self, original_node, updated_node):
-    if (len(updated_node.body) == 1
-        and m.matches(
-          updated_node.body[0],
-          m.Assign(
-            targets=[m.AssignTarget(target=m.Name("delay"))],
-            value=m.Call(func=m.Name("min")))
-        )
-    ):
+    expr_code = cst.Module([]).code_for_node(original_node.body[0]).strip()
+
+    target_line = "error_message = str(e)"
+    if expr_code.strip() == target_line.strip():
       # possible saviour ...
       return cst.FlattenSentinel([
         updated_node,
-        cst.parse_statement("error_msg = str(e)"),
-        cst.parse_statement("prefix = f'❌ Invocation to LLM number {attempt} failed. Waiting for {delay} seconds before retrying:\\n '"),
-        cst.parse_statement("logger.error(f'{prefix}{error_msg}')"),
+        cst.parse_statement("self.logger.error(f'❌ Invocation to LLM failed and external retries were removed: \\n {error_message}')"),
       ])
 
-    target_line = "parsed_data = json.loads(response.text)"
-    expr_code = cst.Module([]).code_for_node(original_node.body[0]).strip()
+    target_line = "parsed_data = json.loads(text)"
     if expr_code.strip() == target_line.strip():
       return cst.FlattenSentinel([
         # I hate all this addtional manipulations needed with comments. They should be entities on their own ...
         cst.EmptyLine(comment=cst.Comment("# Parse the JSON text and validate with the Pydantic model")),
-        cst.parse_statement("parsed_data = json.loads(repair_json(clean_response_before_parsing(response.text)))"),
+        cst.parse_statement("parsed_data = json.loads(repair_json(clean_response_before_parsing(response.text.strip())))"),
+      ])
+
+    target_line = "text = response.text.strip()"
+    if expr_code.strip() == target_line.strip():
+      return cst.FlattenSentinel([
+        # This is, in fact, a "generic" method to comment a line ...
+        cst.EmptyLine(comment=cst.Comment(f"# {target_line} # commented out by transformer ...")),
       ])
 
     return updated_node
-
-  NEW_FUNC_CODE = '''
-def get_client(self) -> genai.Client:
-    """
-    Returns a genai.Client instance.
-
-    Returns:
-        genai.Client: An instance of the Google genai client.
-    """
-    # This was suggested to me by Perplexity and, empirically, it seems to reduce the number of 429 RESOURCE_EXHAUSTED errors.
-    if not self.client:
-        client_params = self._get_client_params()
-        self.client = genai.Client(**client_params)
-        
-    return self.client
-'''
 
   BEAUTIFUL_JSON_FIX = '''
 def clean_response_before_parsing(response: str) -> str:
@@ -227,10 +181,6 @@ def repair_json(text: str) -> str:
 
       updated_node = updated_node.with_changes(body=updated_node.body.with_changes(body=body))
 
-    if original_node.name.value == "get_client":
-      new_func = cst.parse_module(self.NEW_FUNC_CODE)  # parse entire function as module, get first stmt (FunctionDef) => possible saviour
-      return new_func
-
     if original_node.name.value == "ainvoke" and not original_node.decorators:
       # Identify the target line using a string match
       target_line = "async def _make_api_call():"
@@ -262,31 +212,14 @@ def repair_json(text: str) -> str:
 
     return updated_node
 
-  def leave_ClassDef(self, original_node, updated_node):
-    if original_node.name.value == "ChatGoogle":
-      target_line = "http_options: types.HttpOptions | types.HttpOptionsDict | None = None"
-
-      new_stmts = [
-        cst.EmptyLine(),
-        cst.EmptyLine(comment=cst.Comment(
-          "# This was suggested to me by Perplexity and, empirically, it seems to reduce the number of 429 RESOURCE_EXHAUSTED errors.")),
-        cst.parse_statement("client: genai.Client | None = None\n"),
-        cst.EmptyLine()
-      ]
-
-      old_body = list(updated_node.body.body)
-
-      idx = None
-      for i, stmt in enumerate(old_body):
-        # Use Module([]).code_for_node(node)
-        if cst.Module([]).code_for_node(stmt).strip() == target_line:
-          idx = i
-          break
-
-      new_body = old_body[:idx + 1] + new_stmts + old_body[idx + 1:]
-
-      return updated_node.with_changes(
-        body=updated_node.body.with_changes(body=tuple(new_body))
-      )
+  # Simple and expedite ...
+  def leave_If(self, original_node, updated_node):
+    code = cst.Module([]).code_for_node(original_node)
+    test = cst.Module([]).code_for_node(original_node.test)
+    if ("text.startswith('```json') and text.endswith('```')" in test):
+      return cst.RemoveFromParent()
+      # This below wasn't working ...
+      # lines = ["# " + line for line in code.splitlines()]
+      # return cst.parse_statement("\n".join(lines) + "\n")
 
     return updated_node

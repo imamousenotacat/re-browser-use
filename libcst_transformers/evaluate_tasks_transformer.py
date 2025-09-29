@@ -20,7 +20,7 @@ NEW_IMPORTS = [
   "",
   "import datetime",
   "",
-  "import aiofiles",
+  "import anyio",
   "import yaml",
   "from pydantic import BaseModel",
   "",
