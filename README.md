@@ -24,7 +24,7 @@ python examples\nopecha_cloudflare_no_playwright.py
 I have added OS-level clicks in headful mode to enable the use of ProtonVPN. Once again, credit goes to [Vinyzu](https://github.com/Vinyzu),
 as I used a pruned and slightly modified version of his [CDP-Patches](https://github.com/imamousenotacat/re-cdp-patches) project for this.
 
-_**I restored and made more solid the JavaScript highlighting system that was removed in version 0.7.1.**_ I find it extremely useful for my use case.
+_**I restored and completed the JavaScript highlighting system that was removed in version 0.7.1 and only partially reincorporated in 0.8.1.**_ I find it extremely useful for my use case.
 
 The one below is a long-awaited browser-use test that was chased for quite a while 😜:
 
@@ -125,7 +125,7 @@ Now run again the script
 python examples\nopecha_cloudflare_no_playwright.py
 ```
 
-![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_no_playwright.py.KO-0.7.9.gif)
+![nopecha_cloudflare_unfolded.py KO](https://raw.githubusercontent.com/imamousenotacat/re-browser-use/main/images/nopecha_cloudflare_no_playwright.py.KO-0.8.1.gif)
 
 With the current versions of browser-use, this still won't work.
 
