@@ -1,7 +1,7 @@
 import libcst as cst
 from libcst import matchers as m
 from libcst.metadata import PositionProvider
-
+from textwrap import dedent
 
 class BrowserSessionTransformer(cst.CSTTransformer):
 
@@ -149,5 +149,23 @@ async def get_main_page_from_target(self, target_id: TargetID | None = None) -> 
           right=updated_node.value.right.with_changes(elements=new_elements)
         )
       )
+
+    return updated_node
+
+  # Ugly but quick and easy to read ...
+  def leave_SimpleStatementLine(self, original_node, updated_node):
+    target_line = "await session.cdp_client.send.Runtime.runIfWaitingForDebugger(session_id=session.session_id)"
+    expr_code = cst.Module([]).code_for_node(original_node.body[0]).strip()
+    if expr_code.strip() == target_line:
+      return cst.FlattenSentinel([
+        cst.parse_statement(dedent("""try:
+        await session.cdp_client.send.Runtime.runIfWaitingForDebugger(session_id=session.session_id)
+except Exception as e:
+        self.logger.warning(
+                f'Ignoring exception [{e}] when invoking runIfWaitingForDebugger. It seems to happen only if dom_highlight_elements = False ???'
+        )
+""")),
+        updated_node,
+      ])
 
     return updated_node
