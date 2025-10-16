@@ -42,7 +42,7 @@ async def test_nopecha(llm):
         # Both options below are needed to pass Cloudflare challenge
         disable_security=False,
         cross_origin_iframes=True,
-        highlight_elements=True
+        dom_highlight_elements=True
       )
     )
   )
