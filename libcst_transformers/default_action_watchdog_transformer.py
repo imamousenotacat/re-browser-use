@@ -17,8 +17,7 @@ class DefaultActionWatchdogTransformer(cst.CSTTransformer):
       return updated_node
 
     new_function_code = '''
-# TODO: MOU14 Implement while_holding_ctrl ...
-async def _system_click_element_node_impl(self, element_node, while_holding_ctrl: bool = False) -> dict | None:
+async def _system_click_element_node_impl(self, element_node) -> dict | None:
   """Perform OS level mouse left click ..."""
   # Delaying the import to this point not to have trouble with setxkbmap -print Cannot open display "default display"
   from cdp_patches.input import AsyncInput
@@ -83,16 +82,16 @@ async def _system_click_element_node_impl(self, element_node, while_holding_ctrl
 
   BEAUTIFUL_IF_ELSE = """
 if self.browser_session.browser_profile.headless:
-  click_metadata = await self._click_element_node_impl(element_node, while_holding_ctrl=event.while_holding_ctrl)
+  click_metadata = await self._click_element_node_impl(element_node)
 else:
-  click_metadata = await self._system_click_element_node_impl(element_node, while_holding_ctrl=event.while_holding_ctrl)
+  click_metadata = await self._system_click_element_node_impl(element_node)
 """
 
   # Simplifying things, this code can be brittle, but it is extremely easy to read ...
   def leave_Try(self, original_node, updated_node):
     if self.current_function == "on_ClickElementEvent":
       # Identify the target line using a string match
-      target_line = "click_metadata = await self._click_element_node_impl(element_node, while_holding_ctrl=event.while_holding_ctrl)"
+      target_line = "click_metadata = await self._click_element_node_impl(element_node)"
 
       # Determine the matching statement and where to insert above it
       new_body = []
