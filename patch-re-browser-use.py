@@ -96,11 +96,12 @@ authors_arr.multiline(False)
 doc["project"]["authors"] = authors_arr
 doc["project"]["version"] = "0.8.1"
 
-all_deps = doc["project"]["optional-dependencies"]["all"]
-for i, dep in enumerate(all_deps):
+all_opt_deps = doc["project"]["optional-dependencies"]
+for opt_deps in all_opt_deps:
+  for j , dep in enumerate(all_opt_deps[opt_deps]):
     if dep.startswith("browser-use["):
-        all_deps[i] = dep.replace("browser-use[", f"{PROJECT_NAME}[")
-doc["project"]["optional-dependencies"]["all"] = all_deps
+        all_opt_deps[opt_deps][j] = dep.replace("browser-use[", f"{PROJECT_NAME}[")
+doc["project"]["optional-dependencies"] = all_opt_deps
 
 doc["project"]["urls"]["Repository"] = "https://github.com/imamousenotacat/re-browser-use"
 
