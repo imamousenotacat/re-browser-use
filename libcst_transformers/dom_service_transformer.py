@@ -43,7 +43,7 @@ class DomServiceTransformer(cst.CSTTransformer):
       return updated_node.with_changes(body=new_body)
 
     # THEY WERE LEAVING OUT IMPORTANT FRAMES ...
-    if "width >= 200 and height >= 200" in condition_code:
+    if "width >= 50 and height >= 50" in condition_code:
       new_test = cst.parse_expression("width >= 1 and height >= 1")
       return updated_node.with_changes(test=new_test)
 
@@ -66,7 +66,7 @@ class DomServiceTransformer(cst.CSTTransformer):
     return updated_node
 
   def leave_Comment(self, original_node: cst.Comment, updated_node: cst.Comment) -> cst.Comment:
-    if "Only process if iframe is at least 200px in both dimensions" in original_node.value:
+    if "Only process if iframe is at least 50px in both dimensions" in original_node.value:
       return updated_node.with_changes(value="# Only process if iframe is at least 1px in both dimensions")
 
     return updated_node
