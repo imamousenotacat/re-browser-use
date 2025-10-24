@@ -7,7 +7,7 @@ from textwrap import dedent
 NEW_DOCSTRING = (
   "Runs all agent tasks in parallel SEQUENTIALLY I'M A POOR MOUSE (up to 10 at a time) using separate subprocesses.\n"
   "Each task gets its own Python process, preventing browser session interference.\n"
-  "Does not fail on partial failures (always exits 0)."
+  "Fails with exit code 1 if 0% of tasks pass."
 )
 
 NEW_IMPORTS = [
@@ -22,11 +22,10 @@ NEW_IMPORTS = [
   "",
   "import anyio",
   "import yaml",
+  "from dotenv import load_dotenv",
   "from pydantic import BaseModel",
   "",
-  "from browser_use.agent.views import AgentHistoryList",
   "from tests.utils_for_tests import create_llm, create_stealth_browser_session, create_stealth_agent",
-  "from browser_use.llm.messages import UserMessage"
 ]
 
 HEADLESS_VAR = "HEADLESS_EVALUATION = os.environ.get('HEADLESS_EVALUATION', 'True').lower() == 'true'"
@@ -170,14 +169,6 @@ for i, task_file in enumerate(TASK_FILES):
           + body[idx:insert_idx]
           + [headless_node, stream_reader_node]
           + body[insert_idx:]
-      )
-    else:
-      # fallback: insert after imports
-      new_body = (
-          [new_docstring_node]
-          + new_import_nodes
-          + [headless_node, stream_reader_node]
-          + body[idx:]
       )
 
     return updated_node.with_changes(body=new_body)
@@ -508,6 +499,15 @@ for i, task_file in enumerate(TASK_FILES):
           cst.EmptyLine(comment=cst.Comment("#      ...")),
         ]
       )
+
+    test = cst.Module([]).code_for_node(original_node.test)
+    if ("not api_key" in test):
+      return cst.FlattenSentinel([
+        # I thought that I would need a 'pass' sentence here, but I don't
+        cst.EmptyLine(comment=cst.Comment(f"# I don't give a damn about BROWSER_USE_API_KEY ...")),
+        cst.EmptyLine(comment=cst.Comment(f"# if {test}")),
+        cst.EmptyLine(comment=cst.Comment(f"#   raise ValueError('BROWSER_USE_API_KEY is not set')"))
+      ])
 
     return updated_node
 
