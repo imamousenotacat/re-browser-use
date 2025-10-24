@@ -30,7 +30,7 @@ class ChatGoogleTransformer(cst.CSTTransformer):
         cst.EmptyLine(comment=cst.Comment(f"# {target_line} # commented out by transformer ...")),
       ])
 
-    target_line = "max_output_tokens: int | None = 4096"
+    target_line = "max_output_tokens: int | None = 8096"
     if expr_code.strip() == target_line.strip():
       return cst.FlattenSentinel([
         cst.EmptyLine(comment=cst.Comment("# LIBCST transformer changed this default value to None")),
