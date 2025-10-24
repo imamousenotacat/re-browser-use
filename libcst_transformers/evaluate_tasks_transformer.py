@@ -222,7 +222,6 @@ for i, task_file in enumerate(TASK_FILES):
         and original_node.targets[0].target.value in ("agent_llm", "judge_llm")
         and isinstance(original_node.value, cst.Call)
         and isinstance(original_node.value.func, cst.Name)
-        and original_node.value.func.value == "ChatGoogle"
     ):
       return updated_node.with_changes(
         value=cst.Call(func=cst.Name("create_llm"), args=[])
