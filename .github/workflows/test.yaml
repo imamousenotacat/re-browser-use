@@ -40,7 +40,12 @@ jobs:
           path: browser-use
       - id: lsgrep
         run: |
-          TEST_FILENAMES="$(ls tests/ci/test_*.py | sed 's|^tests/ci/||' | sed 's|\.py$||' | jq -R -s -c 'split("\n")[:-1]')"
+          echo "🔍 Discovering test files at $(date)"
+          echo "Git commit: $(git rev-parse HEAD)"
+          echo "Git branch: $(git branch --show-current)"
+          echo ""
+          
+          TEST_FILENAMES="$(find tests/ci -name 'test_*.py' -type f | sed 's|^tests/ci/||' | sed 's|\.py$||' | jq -R -s -c 'split("\n")[:-1]')"
           echo "TEST_FILENAMES=${TEST_FILENAMES}" >> "$GITHUB_OUTPUT"
           echo "$TEST_FILENAMES"
         # https://code.dblock.org/2021/09/03/generating-task-matrix-by-looping-over-repo-files-with-github-actions.html
