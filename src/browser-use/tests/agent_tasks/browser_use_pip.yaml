@@ -1,0 +1,5 @@
+name: Find pip install command for browser-use
+task: "IMPORTANT RULE: If you find that a page you've navigated to is empty or lacks interactive elements, ALWAYS wait at least 5 seconds before doing anything else. THIS IS YOUR TASK: Find the pip installation command for the browser-use repo, if you find a Google CAPTCHA search instead in duckduckgo.com."
+judge_context:
+  - The output must include the command ('pip install browser-use')
+max_steps: 10

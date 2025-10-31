@@ -117,23 +117,25 @@ with open_file("pyproject.toml", "w") as f:
 
 print(f"Successfully updated pyproject.toml")
 
-# Changing some details in a couple of YAML files to avoid unsolvable problems with Google CAPTCHA and stupid problems with the judge saying
-# from time to time that "example.com" is not a valid name ...
-yaml = YAML()
-yaml.preserve_quotes = True
-yaml.width = 4096  # disables line wrapping
-yaml.indent(mapping=0, sequence=0, offset=2)
+# It's a little bit stupid to change YAML files when you can directly provide adjusted ones
 
-browser_use_pip_yaml = "tests/agent_tasks/browser_use_pip.yaml"
-with open_file(browser_use_pip_yaml) as f:
-  data = yaml.load(f)
-
-data['task'] = 'Find the pip installation command for the browser-use repo, if you find a Google CAPTCHA search instead in duckduckgo.com'
-
-with open_file(browser_use_pip_yaml, 'w') as f:
-  yaml.dump(data, f)
-
-print(f"Successfully updated {browser_use_pip_yaml}")
+# # Changing some details in a couple of YAML files to avoid unsolvable problems with Google CAPTCHA and stupid problems with the judge saying
+# # from time to time that "example.com" is not a valid name ...
+# yaml = YAML()
+# yaml.preserve_quotes = True
+# yaml.width = 4096  # disables line wrapping
+# yaml.indent(mapping=0, sequence=0, offset=2)
+#
+# browser_use_pip_yaml = "tests/agent_tasks/browser_use_pip.yaml"
+# with open_file(browser_use_pip_yaml) as f:
+#   data = yaml.load(f)
+#
+# data['task'] = 'Find the pip installation command for the browser-use repo, if you find a Google CAPTCHA search instead in duckduckgo.com'
+#
+# with open_file(browser_use_pip_yaml, 'w') as f:
+#   yaml.dump(data, f)
+#
+# print(f"Successfully updated {browser_use_pip_yaml}")
 
 # THIS FILE WAS REMOVED IN VERSION 0.7.6 BUT I KEEP IT ...
 # captcha_cloudflare_yaml = "tests/agent_tasks/captcha_cloudflare.yaml"

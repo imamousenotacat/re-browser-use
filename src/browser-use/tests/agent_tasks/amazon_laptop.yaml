@@ -1,0 +1,7 @@
+name: Amazon Laptop Search
+task: "IMPORTANT RULE: If you find that a page you've navigated to is empty or lacks interactive elements, ALWAYS wait at least 5 seconds before doing anything else. THIS IS YOUR TASK: Go to amazon.com, search for 'laptop', and return the first result."
+judge_context:
+  - The agent must navigate to amazon.com
+  - The agent must search for 'laptop'
+  - The agent must return name of the first laptop 
+max_steps: 10
