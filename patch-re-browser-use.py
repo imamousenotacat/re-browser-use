@@ -75,7 +75,7 @@ with open_file("pyproject.toml") as f:
 deps = doc["project"]["dependencies"]
 
 # Add the dependency to the library enabling real clicks ...
-deps.append("re-cdp-patches>=0.9.1")
+deps.append("re-cdp-patches>=0.9.2")
 
 # and remove the required-environments key from [tool.uv]
 if "tool" in doc and "uv" in doc["tool"]:
@@ -94,7 +94,7 @@ author["name"] = "Gregor Zunic, patched by github.com/imamousenotacat/"
 authors_arr.append(author)
 authors_arr.multiline(False)
 doc["project"]["authors"] = authors_arr
-doc["project"]["version"] = "0.9.1"
+doc["project"]["version"] = "0.9.2"
 
 all_opt_deps = doc["project"]["optional-dependencies"]
 for opt_deps in all_opt_deps:
