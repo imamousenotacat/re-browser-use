@@ -81,7 +81,7 @@ jobs:
     env:
       IN_DOCKER: 'True'
       ANONYMIZED_TELEMETRY: 'false'
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
     steps:
       - name: Download Patched Browser Use
         uses: actions/download-artifact@v4

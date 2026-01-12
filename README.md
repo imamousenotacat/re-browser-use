@@ -67,7 +67,7 @@ uvx playwright install chromium --with-deps --no-shell
 Create a minimalistic `.env` file. This is what I use. I'm a poor mouse and I can afford only free things. 🙂
 
 ```bash
-GOOGLE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NVIDIA_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ANONYMIZED_TELEMETRY=false
 SKIP_LLM_API_KEY_VERIFICATION=true
 HEADLESS_EVALUATION=false
@@ -98,12 +98,13 @@ async def main():
       "Go to https://nopecha.com/demo/cloudflare, wait for the verification checkbox to appear, click it once, and wait for 10 seconds."
       "That’s all. If you get redirected, don’t worry."
     ),
-    llm=ChatGoogle(model="gemini-2.5-flash-lite"),
+    llm=ChatOpenAI(model="nvidia/nemotron-3-nano-30b-a3b", base_url='https://integrate.api.nvidia.com/v1',
+                   api_key=os.getenv('NVIDIA_API_KEY'), add_schema_to_system_prompt=True),
     browser_session=BrowserSession(
       browser_profile=BrowserProfile(
         headless=False,
         cross_origin_iframes=True,
-        dom_highlight_elements=True
+        dom_highlight_elements=True,
       )
     )
   )

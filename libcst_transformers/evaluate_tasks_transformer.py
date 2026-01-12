@@ -232,6 +232,15 @@ for i, task_file in enumerate(TASK_FILES):
       # Replace the value (right side) of the assignment
       return updated_node.with_changes(value=new_right)
 
+    # Matches: google_api_key = os.getenv('GOOGLE_API_KEY')
+    if m.matches(original_node,
+                 m.Assign(targets=[m.AssignTarget(target=m.Name("google_api_key"))],
+                          value=m.Call(func=m.Attribute(value=m.Name("os"), attr=m.Name("getenv")), args=[m.Arg(value=m.SimpleString())]))):
+      # Also ensure the string actually contains GOOGLE_API_KEY
+      arg = original_node.value.args[0].value
+      if isinstance(arg, cst.SimpleString) and "GOOGLE_API_KEY" in arg.value:
+        return cst.RemovalSentinel.REMOVE
+
     return updated_node
 
   # Replace profile = BrowserProfile(...) with playwright = await async_patchright().start()
@@ -508,6 +517,10 @@ for i, task_file in enumerate(TASK_FILES):
         cst.EmptyLine(comment=cst.Comment(f"# if {test}")),
         cst.EmptyLine(comment=cst.Comment(f"#   raise ValueError('BROWSER_USE_API_KEY is not set')"))
       ])
+
+    # Matches: if not google_api_key:
+    if m.matches(original_node.test, m.UnaryOperation(operator=m.Not(),expression=m.Name("google_api_key"))):
+      return cst.RemovalSentinel.REMOVE
 
     return updated_node
 
